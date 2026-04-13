@@ -1,0 +1,21 @@
+[project]
+name = "mist-skills"
+version = "0.1.0"
+description = "Anthropic Agent Skills for mist stock analysis backend"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[tool.setuptools]
+packages = ["shared"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
