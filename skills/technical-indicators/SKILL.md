@@ -37,7 +37,7 @@ Returns: Array of `{rsi, symbol, time, close}`.
 
 All indicator scripts accept:
 - `--code` (required): Security code, e.g. `000001.SH`
-- `--period` (required): Time period — `1min`, `5min`, `15min`, `30min`, `60min`, `daily`
+- `--period` (required): Time period — `1min`, `5min`, `15min`, `30min`, `60min`, `daily` (converted to Mist numeric period values before request)
 - `--start-date` (required): Start date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
 - `--end-date` (required): End date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
 - `--source` (optional): Data source — `ef`, `tdx`, `mqmt`
@@ -47,3 +47,8 @@ All indicator scripts accept:
 - **MACD**: Trend direction, momentum shifts, crossovers
 - **KDJ**: Overbought (>80) / oversold (<20) conditions, short-term reversals
 - **RSI**: Momentum strength (0-100), divergence detection, overbought (>70) / oversold (<30)
+
+## Mist API Notes
+
+The current Mist backend expects numeric period enum values. Use the aliases
+above in Skill calls; scripts convert them automatically.

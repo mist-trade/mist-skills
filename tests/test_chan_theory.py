@@ -104,7 +104,7 @@ def test_chan_body_params(merged_k_data):
         merge_k.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13", source="tdx")
     body = client.post.call_args[0][1]
     assert body["code"] == "000001.SH"
-    assert body["period"] == "daily"
+    assert body["period"] == 1440
     assert body["startDate"] == "2026-01-01"
     assert body["endDate"] == "2026-04-13"
     assert body["source"] == "tdx"

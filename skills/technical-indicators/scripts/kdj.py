@@ -5,11 +5,12 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from shared.mist_client import MistClient
+from shared.periods import normalize_period
 
 
 def main(code: str, period: str, start_date: str, end_date: str,
          source: str | None = None) -> list:
-    body = {"code": code, "period": period, "startDate": start_date, "endDate": end_date}
+    body = {"code": code, "period": normalize_period(period), "startDate": start_date, "endDate": end_date}
     if source:
         body["source"] = source
 

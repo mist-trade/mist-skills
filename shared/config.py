@@ -7,3 +7,7 @@ def get_base_url() -> str:
 
 def get_timeout() -> int:
     return int(os.environ.get("MIST_API_TIMEOUT", "30"))
+
+
+def get_default_source() -> str:
+    return os.environ.get("MIST_DEFAULT_SOURCE", "tdx")

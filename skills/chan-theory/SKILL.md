@@ -54,7 +54,7 @@ Returns: Channel data with consolidation zones.
 
 All chan-theory scripts accept:
 - `--code` (required): Security code, e.g. `000001.SH`
-- `--period` (required): Time period — `1min`, `5min`, `15min`, `30min`, `60min`, `daily`
+- `--period` (required): Time period — `1min`, `5min`, `15min`, `30min`, `60min`, `daily` (converted to Mist numeric period values before request)
 - `--start-date` (required): Start date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
 - `--end-date` (required): End date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
 - `--source` (optional): Data source — `ef`, `tdx`, `mqmt`
@@ -62,3 +62,8 @@ All chan-theory scripts accept:
 ## Step-by-Step vs Combined
 
 Use `analyze_chan` for a quick overview. Use individual scripts when you need to inspect intermediate results (e.g., examine merged K-lines before running bi analysis).
+
+## Mist API Notes
+
+The current Mist backend expects numeric period enum values. Use the aliases
+above in Skill calls; scripts convert them automatically.
