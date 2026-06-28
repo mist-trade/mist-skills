@@ -48,6 +48,18 @@ All indicator scripts accept:
 - **KDJ**: Overbought (>80) / oversold (<20) conditions, short-term reversals
 - **RSI**: Momentum strength (0-100), divergence detection, overbought (>70) / oversold (<30)
 
+## AstrBot Intent Examples
+
+- "查贵州茅台 MACD" → run `macd --code 600519.SH --period daily`
+- "贵州茅台 KDJ 最近一个月" → run `kdj --code 600519.SH --period daily`
+- "600519 的 RSI 怎么样" → run `rsi --code 600519.SH --period daily`
+
+Defaults and guardrails:
+- Use `daily` when the user does not specify a period.
+- Use `tdx` unless the user asks for another source.
+- Prefer at least 30 trading days for RSI/KDJ and at least 60 trading days for MACD warm-up.
+- If the response has leading `null` values, explain that indicators need warm-up history.
+
 ## Mist API Notes
 
 The current Mist backend expects numeric period enum values. Use the aliases

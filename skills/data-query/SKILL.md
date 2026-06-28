@@ -61,6 +61,18 @@ Parameters:
 3. Query K-line data with `get_kline_data` (intraday/minute/hour) or `get_daily_kline` (daily)
 4. For a daily query like "贵州茅台最近一周日线", call `get_daily_kline` directly with `--code 600519.SH --name "贵州茅台"`; do not try `POST /security/v1`, because Mist uses `POST /security/v1/initialize`, `POST /security/v1/sources`, and `POST /v1/collector/collect` internally.
 
+## AstrBot Intent Examples
+
+- "有哪些股票可以查" → run `list_indices`
+- "贵州茅台最近一周日线" → run `get_daily_kline --code 600519.SH --name 贵州茅台`
+- "贵州茅台今天 60 分钟 K 线" → run `get_kline_data --code 600519.SH --name 贵州茅台 --period 60min`
+
+Defaults and guardrails:
+- Default source is `tdx` unless the user requests another source.
+- Prefer `daily` when the user does not specify a period.
+- Ask for a code or infer one confidently before calling scripts.
+- Reject unbounded multi-symbol history requests and ask the user to narrow the scope.
+
 ## Response Fields
 
 K-line data returns: `id`, `symbol`, `time`, `amount`, `open`, `close`, `highest`, `lowest`.

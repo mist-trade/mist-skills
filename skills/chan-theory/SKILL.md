@@ -63,6 +63,18 @@ All chan-theory scripts accept:
 
 Use `analyze_chan` for a quick overview. Use individual scripts when you need to inspect intermediate results (e.g., examine merged K-lines before running bi analysis).
 
+## AstrBot Intent Examples
+
+- "贵州茅台做一下缠论分析" → run `analyze_chan --code 600519.SH --period daily`
+- "贵州茅台合并 K 线" → run `merge_k --code 600519.SH --period daily`
+- "600519 找一下分型" → run `get_fenxing --code 600519.SH --period daily`
+
+Defaults and guardrails:
+- Use `daily` when the user does not specify a period.
+- Use `tdx` unless the user asks for another source.
+- Prefer a broad enough date range for Chan Theory structure detection.
+- Empty `analyze_chan` results mean no channel was identified for that window; this is not an API error.
+
 ## Mist API Notes
 
 The current Mist backend expects numeric period enum values. Use the aliases
