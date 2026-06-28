@@ -1,6 +1,6 @@
-import json
 import sys
 import os
+import importlib
 import pytest
 from unittest.mock import patch, MagicMock
 from shared.mist_client import MistClient
@@ -96,14 +96,24 @@ def test_analyze_chan_endpoint(channel_data):
     assert client.post.call_args[0][0] == "/chan/channel"
 
 
-def test_chan_body_params(merged_k_data):
-    """Chan scripts pass all optional params."""
-    import merge_k
+@pytest.mark.parametrize(
+    ("module_name", "endpoint"),
+    [
+        ("merge_k", "/chan/merge-k"),
+        ("create_bi", "/chan/bi"),
+        ("get_fenxing", "/chan/fenxing"),
+        ("analyze_chan", "/chan/channel"),
+    ],
+)
+def test_chan_body_params(module_name, endpoint, merged_k_data):
+    """Chan scripts normalize suffixed A-share codes and pass all optional params."""
+    module = importlib.import_module(module_name)
     client = _mock_client(merged_k_data)
-    with patch.object(merge_k, "MistClient", return_value=client):
-        merge_k.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13", source="tdx")
+    with patch.object(module, "MistClient", return_value=client):
+        module.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13", source="tdx")
+    assert client.post.call_args[0][0] == endpoint
     body = client.post.call_args[0][1]
-    assert body["code"] == "000001.SH"
+    assert body["code"] == "000001"
     assert body["period"] == 1440
     assert body["startDate"] == "2026-01-01"
     assert body["endDate"] == "2026-04-13"

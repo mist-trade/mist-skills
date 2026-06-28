@@ -6,11 +6,13 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from shared.mist_client import MistClient
 from shared.periods import normalize_period
+from shared.securities import split_exchange_suffix
 
 
 def main(code: str, period: str, start_date: str, end_date: str,
          source: str | None = None) -> list:
-    body = {"code": code, "period": normalize_period(period), "startDate": start_date, "endDate": end_date}
+    backend_code, _ = split_exchange_suffix(code)
+    body = {"code": backend_code, "period": normalize_period(period), "startDate": start_date, "endDate": end_date}
     if source:
         body["source"] = source
 
