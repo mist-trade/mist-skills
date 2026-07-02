@@ -66,6 +66,26 @@ def test_api_error_on_success_false(client):
     assert exc_info.value.error_code == 2001
 
 
+def test_success_without_data_raises_api_error(client):
+    """Malformed success envelopes are surfaced as MistApiError, not KeyError."""
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {
+        "success": True,
+        "statusCode": 200,
+        "message": "SUCCESS",
+        "timestamp": "2026-04-13T00:00:00Z",
+        "requestId": "req-missing-data",
+    }
+
+    with patch("shared.mist_client.requests.get", return_value=resp):
+        with pytest.raises(MistApiError) as exc_info:
+            client.get("/security/v1/all")
+
+    assert "missing data" in str(exc_info.value).lower()
+    assert exc_info.value.error_code == 200
+
+
 def test_connection_error(client):
     """Raises MistConnectionError on connection failure."""
     import requests

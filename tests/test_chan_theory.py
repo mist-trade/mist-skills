@@ -2,7 +2,7 @@ import sys
 import os
 import importlib
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import ANY, patch, MagicMock
 from shared.mist_client import MistClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "skills", "chan-theory", "scripts"))
@@ -118,3 +118,43 @@ def test_chan_body_params(module_name, endpoint, merged_k_data):
     assert body["startDate"] == "2026-01-01"
     assert body["endDate"] == "2026-04-13"
     assert body["source"] == "tdx"
+
+
+@pytest.mark.parametrize(
+    ("module_name", "endpoint"),
+    [
+        ("merge_k", "/chan/merge-k"),
+        ("create_bi", "/chan/bi"),
+        ("get_fenxing", "/chan/fenxing"),
+        ("analyze_chan", "/chan/channel"),
+    ],
+)
+def test_chan_scripts_delegate_to_shared_runner(module_name, endpoint):
+    module = importlib.import_module(module_name)
+    calls = []
+
+    def fake_run_simple_post(**kwargs):
+        calls.append(kwargs)
+        return [{"ok": True}]
+
+    with patch.object(module, "run_simple_post", side_effect=fake_run_simple_post):
+        result = module.main(
+            code="000001.SH",
+            period="daily",
+            start_date="2026-01-01",
+            end_date="2026-04-13",
+            source="tdx",
+        )
+
+    assert result == [{"ok": True}]
+    assert calls == [
+        {
+            "endpoint": endpoint,
+            "code": "000001.SH",
+            "period": "daily",
+            "start_date": "2026-01-01",
+            "end_date": "2026-04-13",
+            "source": "tdx",
+            "client": ANY,
+        }
+    ]

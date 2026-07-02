@@ -1,23 +1,23 @@
 import argparse
-import json
 import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from shared.mist_client import MistClient
-from shared.periods import normalize_period
-from shared.securities import split_exchange_suffix
+from shared.script_runner import run_cli, run_simple_post
 
 
 def main(code: str, period: str, start_date: str, end_date: str,
          source: str | None = None) -> list:
-    backend_code, _ = split_exchange_suffix(code)
-    body = {"code": backend_code, "period": normalize_period(period), "startDate": start_date, "endDate": end_date}
-    if source:
-        body["source"] = source
-
-    client = MistClient()
-    return client.post("/indicator/rsi", body)
+    return run_simple_post(
+        endpoint="/indicator/rsi",
+        code=code,
+        period=period,
+        start_date=start_date,
+        end_date=end_date,
+        source=source,
+        client=MistClient(),
+    )
 
 
 if __name__ == "__main__":
@@ -28,5 +28,4 @@ if __name__ == "__main__":
     parser.add_argument("--end-date", required=True, help="End date (YYYY-MM-DD)")
     parser.add_argument("--source", help="Data source (ef/tdx/mqmt)")
     args = parser.parse_args()
-    result = main(args.code, args.period, args.start_date, args.end_date, args.source)
-    print(json.dumps(result, ensure_ascii=False))
+    run_cli(lambda: main(args.code, args.period, args.start_date, args.end_date, args.source))

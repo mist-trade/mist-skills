@@ -42,4 +42,9 @@ class MistClient:
                 message=data.get("message", "Unknown error"),
                 error_code=data.get("statusCode", 0),
             )
+        if "data" not in data:
+            raise MistApiError(
+                message="Malformed success response: missing data",
+                error_code=data.get("statusCode", resp.status_code),
+            )
         return data["data"]

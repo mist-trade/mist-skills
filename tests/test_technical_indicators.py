@@ -2,7 +2,7 @@ import json
 import sys
 import os
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import ANY, patch, MagicMock
 from shared.mist_client import MistClient
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "skills", "technical-indicators", "scripts"))
@@ -95,3 +95,42 @@ def test_indicator_body_params(macd_data):
     assert body["startDate"] == "2026-01-01"
     assert body["endDate"] == "2026-04-13"
     assert body["source"] == "tdx"
+
+
+@pytest.mark.parametrize(
+    ("module_name", "endpoint"),
+    [
+        ("macd", "/indicator/macd"),
+        ("kdj", "/indicator/kdj"),
+        ("rsi", "/indicator/rsi"),
+    ],
+)
+def test_indicator_scripts_delegate_to_shared_runner(module_name, endpoint):
+    module = __import__(module_name)
+    calls = []
+
+    def fake_run_simple_post(**kwargs):
+        calls.append(kwargs)
+        return [{"ok": True}]
+
+    with patch.object(module, "run_simple_post", side_effect=fake_run_simple_post):
+        result = module.main(
+            code="000001.SH",
+            period="daily",
+            start_date="2026-01-01",
+            end_date="2026-04-13",
+            source="tdx",
+        )
+
+    assert result == [{"ok": True}]
+    assert calls == [
+        {
+            "endpoint": endpoint,
+            "code": "000001.SH",
+            "period": "daily",
+            "start_date": "2026-01-01",
+            "end_date": "2026-04-13",
+            "source": "tdx",
+            "client": ANY,
+        }
+    ]
