@@ -46,9 +46,11 @@ def test_list_indices(securities_data):
 def test_get_index_info(securities_data):
     import get_index_info
     data = securities_data[0]
-    with patch.object(get_index_info, "MistClient", return_value=_mock_client_success(data)):
+    client = _mock_client_success(data)
+    with patch.object(get_index_info, "MistClient", return_value=client):
         result = get_index_info.main(code="000001.SH")
     assert _get_symbol(result) == "000001.SH"
+    client.get.assert_called_once_with("/security/v1/000001")
 
 
 def test_get_kline_data(kline_data):

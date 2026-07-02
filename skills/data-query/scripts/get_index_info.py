@@ -5,11 +5,13 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from shared.mist_client import MistClient
 from shared.script_runner import run_cli
+from shared.securities import split_exchange_suffix
 
 
 def main(code: str) -> dict:
     client = MistClient()
-    return client.get(f"/security/v1/{code}")
+    backend_code, _ = split_exchange_suffix(code)
+    return client.get(f"/security/v1/{backend_code}")
 
 
 if __name__ == "__main__":
