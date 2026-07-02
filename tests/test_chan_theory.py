@@ -1,11 +1,9 @@
-import sys
-import os
-import importlib
-import pytest
-from unittest.mock import ANY, patch, MagicMock
-from shared.mist_client import MistClient
+from unittest.mock import ANY, MagicMock, patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "skills", "chan-theory", "scripts"))
+import pytest
+
+from shared.mist_client import MistClient
+from tests.script_loader import load_skill_script
 
 
 def _mock_client(data):
@@ -17,7 +15,14 @@ def _mock_client(data):
 @pytest.fixture
 def merged_k_data():
     return [
-        {"startTime": "2026-04-10", "endTime": "2026-04-11", "highest": 3320, "lowest": 3290, "trend": "UP", "mergedCount": 2},
+        {
+            "startTime": "2026-04-10",
+            "endTime": "2026-04-11",
+            "highest": 3320,
+            "lowest": 3290,
+            "trend": "UP",
+            "mergedCount": 2,
+        },
     ]
 
 
@@ -37,62 +42,78 @@ def channel_data():
 
 
 def test_merge_k(merged_k_data):
-    import merge_k
+    merge_k = load_skill_script("chan-theory", "merge_k")
     with patch.object(merge_k, "MistClient", return_value=_mock_client(merged_k_data)):
-        result = merge_k.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = merge_k.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert result[0]["trend"] == "UP"
 
 
 def test_merge_k_endpoint(merged_k_data):
-    import merge_k
+    merge_k = load_skill_script("chan-theory", "merge_k")
     client = _mock_client(merged_k_data)
     with patch.object(merge_k, "MistClient", return_value=client):
-        merge_k.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        merge_k.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert client.post.call_args[0][0] == "/chan/merge-k"
 
 
 def test_create_bi(bi_data):
-    import create_bi
+    create_bi = load_skill_script("chan-theory", "create_bi")
     with patch.object(create_bi, "MistClient", return_value=_mock_client(bi_data)):
-        result = create_bi.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = create_bi.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert len(result) > 0
 
 
 def test_create_bi_endpoint(bi_data):
-    import create_bi
+    create_bi = load_skill_script("chan-theory", "create_bi")
     client = _mock_client(bi_data)
     with patch.object(create_bi, "MistClient", return_value=client):
-        create_bi.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        create_bi.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert client.post.call_args[0][0] == "/chan/bi"
 
 
 def test_get_fenxing(fenxing_data):
-    import get_fenxing
+    get_fenxing = load_skill_script("chan-theory", "get_fenxing")
     with patch.object(get_fenxing, "MistClient", return_value=_mock_client(fenxing_data)):
-        result = get_fenxing.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = get_fenxing.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert result[0]["type"] == "TOP"
 
 
 def test_get_fenxing_endpoint(fenxing_data):
-    import get_fenxing
+    get_fenxing = load_skill_script("chan-theory", "get_fenxing")
     client = _mock_client(fenxing_data)
     with patch.object(get_fenxing, "MistClient", return_value=client):
-        get_fenxing.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        get_fenxing.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert client.post.call_args[0][0] == "/chan/fenxing"
 
 
 def test_analyze_chan(channel_data):
-    import analyze_chan
+    analyze_chan = load_skill_script("chan-theory", "analyze_chan")
     with patch.object(analyze_chan, "MistClient", return_value=_mock_client(channel_data)):
-        result = analyze_chan.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = analyze_chan.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert len(result) > 0
 
 
 def test_analyze_chan_endpoint(channel_data):
-    import analyze_chan
+    analyze_chan = load_skill_script("chan-theory", "analyze_chan")
     client = _mock_client(channel_data)
     with patch.object(analyze_chan, "MistClient", return_value=client):
-        analyze_chan.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        analyze_chan.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert client.post.call_args[0][0] == "/chan/channel"
 
 
@@ -107,10 +128,16 @@ def test_analyze_chan_endpoint(channel_data):
 )
 def test_chan_body_params(module_name, endpoint, merged_k_data):
     """Chan scripts normalize suffixed A-share codes and pass all optional params."""
-    module = importlib.import_module(module_name)
+    module = load_skill_script("chan-theory", module_name)
     client = _mock_client(merged_k_data)
     with patch.object(module, "MistClient", return_value=client):
-        module.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13", source="tdx")
+        module.main(
+            code="000001.SH",
+            period="daily",
+            start_date="2026-01-01",
+            end_date="2026-04-13",
+            source="tdx",
+        )
     assert client.post.call_args[0][0] == endpoint
     body = client.post.call_args[0][1]
     assert body["code"] == "000001"
@@ -130,7 +157,7 @@ def test_chan_body_params(module_name, endpoint, merged_k_data):
     ],
 )
 def test_chan_scripts_delegate_to_shared_runner(module_name, endpoint):
-    module = importlib.import_module(module_name)
+    module = load_skill_script("chan-theory", module_name)
     calls = []
 
     def fake_run_simple_post(**kwargs):

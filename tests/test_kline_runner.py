@@ -103,3 +103,24 @@ def test_run_kline_query_rejects_disallowed_period():
 
     assert exc_info.value.code == 1
     client.post.assert_not_called()
+
+
+def test_run_kline_query_does_not_collect_based_on_error_message_text():
+    client = MagicMock(spec=MistClient)
+    error = MistApiError("Security with code 600519 not found", 500)
+    client.post.side_effect = error
+
+    with pytest.raises(MistApiError) as exc_info:
+        run_kline_query(
+            client=client,
+            code="600519.SH",
+            period="daily",
+            start_date="2026-06-21",
+            end_date="2026-06-28",
+            source="tdx",
+            allowed_periods={1440},
+        )
+
+    assert exc_info.value is error
+    assert client.post.call_count == 1
+    client.get.assert_not_called()

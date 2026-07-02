@@ -1,7 +1,8 @@
-import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from shared.mist_client import MistClient, MistApiError, MistConnectionError
+
+from shared.mist_client import MistApiError, MistClient, MistConnectionError
 
 
 @pytest.fixture
@@ -59,9 +60,11 @@ def test_api_error_on_success_false(client):
         "timestamp": "...",
         "requestId": "req-2",
     }
-    with patch("shared.mist_client.requests.get", return_value=resp):
-        with pytest.raises(MistApiError) as exc_info:
-            client.get("/security/v1/INVALID")
+    with (
+        patch("shared.mist_client.requests.get", return_value=resp),
+        pytest.raises(MistApiError) as exc_info,
+    ):
+        client.get("/security/v1/INVALID")
     assert "Symbol not found" in str(exc_info.value)
     assert exc_info.value.error_code == 2001
 
@@ -78,9 +81,11 @@ def test_success_without_data_raises_api_error(client):
         "requestId": "req-missing-data",
     }
 
-    with patch("shared.mist_client.requests.get", return_value=resp):
-        with pytest.raises(MistApiError) as exc_info:
-            client.get("/security/v1/all")
+    with (
+        patch("shared.mist_client.requests.get", return_value=resp),
+        pytest.raises(MistApiError) as exc_info,
+    ):
+        client.get("/security/v1/all")
 
     assert "missing data" in str(exc_info.value).lower()
     assert exc_info.value.error_code == 200
@@ -89,17 +94,26 @@ def test_success_without_data_raises_api_error(client):
 def test_connection_error(client):
     """Raises MistConnectionError on connection failure."""
     import requests
-    with patch("shared.mist_client.requests.get", side_effect=requests.ConnectionError("Connection refused")):
-        with pytest.raises(MistConnectionError):
-            client.get("/security/v1/all")
+
+    with (
+        patch(
+            "shared.mist_client.requests.get",
+            side_effect=requests.ConnectionError("Connection refused"),
+        ),
+        pytest.raises(MistConnectionError),
+    ):
+        client.get("/security/v1/all")
 
 
 def test_timeout_error(client):
     """Raises MistConnectionError on timeout."""
     import requests
-    with patch("shared.mist_client.requests.get", side_effect=requests.Timeout("Timed out")):
-        with pytest.raises(MistConnectionError):
-            client.get("/security/v1/all")
+
+    with (
+        patch("shared.mist_client.requests.get", side_effect=requests.Timeout("Timed out")),
+        pytest.raises(MistConnectionError),
+    ):
+        client.get("/security/v1/all")
 
 
 def test_base_url_from_config(client):

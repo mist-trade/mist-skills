@@ -1,8 +1,15 @@
 import json
 import sys
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
+from shared.api_contracts import (
+    FIELD_CODE,
+    FIELD_END_DATE,
+    FIELD_PERIOD,
+    FIELD_SOURCE,
+    FIELD_START_DATE,
+)
 from shared.mist_client import MistApiError, MistClient, MistConnectionError
 from shared.periods import PeriodInput, normalize_period
 from shared.securities import split_exchange_suffix
@@ -18,13 +25,13 @@ def build_analysis_body(
 ) -> dict[str, Any]:
     backend_code, _ = split_exchange_suffix(code)
     body: dict[str, Any] = {
-        "code": backend_code,
-        "period": normalize_period(period),
-        "startDate": start_date,
-        "endDate": end_date,
+        FIELD_CODE: backend_code,
+        FIELD_PERIOD: normalize_period(period),
+        FIELD_START_DATE: start_date,
+        FIELD_END_DATE: end_date,
     }
     if source:
-        body["source"] = source
+        body[FIELD_SOURCE] = source
     return body
 
 
@@ -37,16 +44,19 @@ def run_simple_post(
     end_date: str,
     source: str | None = None,
     client: MistClient | None = None,
-) -> dict | list:
+) -> list:
     active_client = client or MistClient()
-    return active_client.post(
-        endpoint,
-        build_analysis_body(
-            code=code,
-            period=period,
-            start_date=start_date,
-            end_date=end_date,
-            source=source,
+    return cast(
+        list,
+        active_client.post(
+            endpoint,
+            build_analysis_body(
+                code=code,
+                period=period,
+                start_date=start_date,
+                end_date=end_date,
+                source=source,
+            ),
         ),
     )
 

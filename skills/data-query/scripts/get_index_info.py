@@ -1,8 +1,7 @@
 import argparse
-import sys
-import os
+from typing import cast
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+from shared.api_contracts import API_ENDPOINTS
 from shared.mist_client import MistClient
 from shared.script_runner import run_cli
 from shared.securities import split_exchange_suffix
@@ -11,7 +10,7 @@ from shared.securities import split_exchange_suffix
 def main(code: str) -> dict:
     client = MistClient()
     backend_code, _ = split_exchange_suffix(code)
-    return client.get(f"/security/v1/{backend_code}")
+    return cast(dict, client.get(API_ENDPOINTS.security_detail(backend_code)))
 
 
 if __name__ == "__main__":

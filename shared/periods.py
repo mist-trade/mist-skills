@@ -1,7 +1,4 @@
-from typing import Union
-
-
-PeriodInput = Union[int, str]
+PeriodInput = int | str
 
 
 PERIOD_ALIASES: dict[str, int] = {
@@ -37,6 +34,4 @@ def normalize_period(period: PeriodInput) -> int:
         return PERIOD_ALIASES[normalized]
     except KeyError as exc:
         supported = ", ".join(sorted(PERIOD_ALIASES))
-        raise ValueError(
-            f"Unsupported period: {period}. Supported values: {supported}"
-        ) from exc
+        raise ValueError(f"Unsupported period: {period}. Supported values: {supported}") from exc

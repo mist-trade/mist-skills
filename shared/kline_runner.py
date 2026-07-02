@@ -1,12 +1,27 @@
 import sys
 from collections.abc import Collection
-from typing import Any
+from typing import Any, cast
 
+from shared.api_contracts import (
+    API_ENDPOINTS,
+    FIELD_CODE,
+    FIELD_ENABLED,
+    FIELD_END_DATE,
+    FIELD_FORMAT_CODE,
+    FIELD_NAME,
+    FIELD_PERIOD,
+    FIELD_PRIORITY,
+    FIELD_SOURCE,
+    FIELD_START_DATE,
+    FIELD_TYPE,
+    KLINE_RETRY_STATUS_CODES,
+    SECURITY_SOURCE_PRIORITY,
+    SECURITY_TYPE_STOCK,
+)
 from shared.config import get_default_source
 from shared.mist_client import MistApiError, MistClient
 from shared.periods import PeriodInput, normalize_period
 from shared.securities import source_format_code, split_exchange_suffix
-
 
 INTRADAY_PERIODS = frozenset({1, 5, 15, 30, 60})
 DAILY_PERIOD = 1440
@@ -28,8 +43,7 @@ def run_kline_query(
     normalized_period = normalize_period(period)
     if allowed_periods is not None and normalized_period not in allowed_periods:
         print(
-            invalid_period_message
-            or f"Error: unsupported period {normalized_period}",
+            invalid_period_message or f"Error: unsupported period {normalized_period}",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -79,25 +93,23 @@ def query_kline(
     end_date: str,
     source: str,
 ) -> list:
-    return client.post(
-        "/indicator/k",
-        {
-            "code": code,
-            "period": period,
-            "startDate": start_date,
-            "endDate": end_date,
-            "source": source,
-        },
+    return cast(
+        list,
+        client.post(
+            API_ENDPOINTS.indicator_k,
+            {
+                FIELD_CODE: code,
+                FIELD_PERIOD: period,
+                FIELD_START_DATE: start_date,
+                FIELD_END_DATE: end_date,
+                FIELD_SOURCE: source,
+            },
+        ),
     )
 
 
 def should_collect_after_error(error: MistApiError) -> bool:
-    message = str(error)
-    return (
-        "Index information not found" in message
-        or "Security with code" in message
-        or error.error_code in {400, 404}
-    )
+    return error.error_code in KLINE_RETRY_STATUS_CODES
 
 
 def ensure_security(
@@ -108,25 +120,25 @@ def ensure_security(
     name: str | None = None,
 ) -> None:
     try:
-        client.get(f"/security/v1/{backend_code}")
+        client.get(API_ENDPOINTS.security_detail(backend_code))
     except MistApiError:
         client.post(
-            "/security/v1/initialize",
+            API_ENDPOINTS.security_initialize,
             {
-                "code": backend_code,
-                "name": name or backend_code,
-                "type": "STOCK",
+                FIELD_CODE: backend_code,
+                FIELD_NAME: name or backend_code,
+                FIELD_TYPE: SECURITY_TYPE_STOCK,
             },
         )
 
     client.post(
-        "/security/v1/sources",
+        API_ENDPOINTS.security_sources,
         {
-            "code": backend_code,
-            "source": source,
-            "formatCode": source_format_code(requested_code),
-            "priority": 100,
-            "enabled": True,
+            FIELD_CODE: backend_code,
+            FIELD_SOURCE: source,
+            FIELD_FORMAT_CODE: source_format_code(requested_code),
+            FIELD_PRIORITY: SECURITY_SOURCE_PRIORITY,
+            FIELD_ENABLED: True,
         },
     )
 
@@ -140,12 +152,12 @@ def collect_kline(
     source: str,
 ) -> dict[str, Any] | list:
     return client.post(
-        "/v1/collector/collect",
+        API_ENDPOINTS.collector_collect,
         {
-            "code": backend_code,
-            "period": period,
-            "startDate": start_date,
-            "endDate": end_date,
-            "source": source,
+            FIELD_CODE: backend_code,
+            FIELD_PERIOD: period,
+            FIELD_START_DATE: start_date,
+            FIELD_END_DATE: end_date,
+            FIELD_SOURCE: source,
         },
     )

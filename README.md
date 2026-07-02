@@ -54,7 +54,9 @@ For container-local AstrBot checks, see [RUNBOOK.md](RUNBOOK.md).
 Install the three directories under `skills/` into AstrBot's
 `/AstrBot/data/skills/` directory. Also copy the repository `shared/` directory
 to `/AstrBot/data/shared/`; the scripts import the shared Mist client and period
-conversion helper from there.
+conversion helper from there. Direct script execution must run in an environment
+where `shared` is importable, either by installing this package or by setting
+`PYTHONPATH=/AstrBot/data` in the AstrBot container.
 
 For the previously deployed Docker Desktop AstrBot stack, make sure the AstrBot
 container environment includes:
@@ -68,8 +70,8 @@ MIST_DEFAULT_SOURCE=tdx
 Quick smoke check from the same Python environment:
 
 ```bash
-python skills/data-query/scripts/list_indices.py
-python skills/data-query/scripts/get_daily_kline.py --code 600519.SH --name "贵州茅台" --start-date "2026-06-21" --end-date "2026-06-28"
+PYTHONPATH=. python skills/data-query/scripts/list_indices.py
+PYTHONPATH=. python skills/data-query/scripts/get_daily_kline.py --code 600519.SH --name "贵州茅台" --start-date "2026-06-21" --end-date "2026-06-28"
 ```
 
 `get_daily_kline` can initialize a missing security, attach the default data

@@ -1,11 +1,9 @@
-import json
-import sys
-import os
-import pytest
-from unittest.mock import patch, MagicMock
-from shared.mist_client import MistApiError, MistClient
+from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "skills", "data-query", "scripts"))
+import pytest
+
+from shared.mist_client import MistApiError, MistClient
+from tests.script_loader import load_skill_script
 
 
 def _mock_client_success(data):
@@ -31,20 +29,31 @@ def _get_symbol(item):
 @pytest.fixture
 def kline_data():
     return [
-        {"id": 1, "symbol": "000001.SH", "time": "2026-04-13", "open": 3300, "close": 3310, "highest": 3320, "lowest": 3290, "amount": 100000},
+        {
+            "id": 1,
+            "symbol": "000001.SH",
+            "time": "2026-04-13",
+            "open": 3300,
+            "close": 3310,
+            "highest": 3320,
+            "lowest": 3290,
+            "amount": 100000,
+        },
     ]
 
 
 def test_list_indices(securities_data):
-    import list_indices
-    with patch.object(list_indices, "MistClient", return_value=_mock_client_success(securities_data)):
+    list_indices = load_skill_script("data-query", "list_indices")
+    with patch.object(
+        list_indices, "MistClient", return_value=_mock_client_success(securities_data)
+    ):
         result = list_indices.main()
     assert len(result) == 2
     assert _get_symbol(result[0]) == "000001.SH"
 
 
 def test_get_index_info(securities_data):
-    import get_index_info
+    get_index_info = load_skill_script("data-query", "get_index_info")
     data = securities_data[0]
     client = _mock_client_success(data)
     with patch.object(get_index_info, "MistClient", return_value=client):
@@ -54,30 +63,36 @@ def test_get_index_info(securities_data):
 
 
 def test_get_kline_data(kline_data):
-    import get_kline_data
+    get_kline_data = load_skill_script("data-query", "get_kline_data")
     with patch.object(get_kline_data, "MistClient", return_value=_mock_client_success(kline_data)):
-        result = get_kline_data.main(code="000001.SH", period="5min", start_date="2026-01-01", end_date="2026-04-13")
+        result = get_kline_data.main(
+            code="000001.SH", period="5min", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert len(result) == 1
     assert result[0]["open"] == 3300
 
 
 def test_get_kline_data_rejects_daily():
     """get_kline_data should reject daily period."""
-    import get_kline_data
+    get_kline_data = load_skill_script("data-query", "get_kline_data")
     with pytest.raises(SystemExit):
-        get_kline_data.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        get_kline_data.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
 
 
 def test_get_daily_kline(kline_data):
-    import get_daily_kline
+    get_daily_kline = load_skill_script("data-query", "get_daily_kline")
     with patch.object(get_daily_kline, "MistClient", return_value=_mock_client_success(kline_data)):
-        result = get_daily_kline.main(code="000001.SH", start_date="2026-01-01", end_date="2026-04-13")
+        result = get_daily_kline.main(
+            code="000001.SH", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert len(result) == 1
 
 
 def test_get_daily_kline_sends_daily_period(kline_data):
     """get_daily_kline sends Mist backend's numeric daily period."""
-    import get_daily_kline
+    get_daily_kline = load_skill_script("data-query", "get_daily_kline")
     client = _mock_client_success(kline_data)
     with patch.object(get_daily_kline, "MistClient", return_value=client):
         get_daily_kline.main(code="000001.SH", start_date="2026-01-01", end_date="2026-04-13")
@@ -88,7 +103,7 @@ def test_get_daily_kline_sends_daily_period(kline_data):
 
 def test_get_daily_kline_collects_when_security_is_missing(kline_data):
     """get_daily_kline can create security, collect data, and retry."""
-    import get_daily_kline
+    get_daily_kline = load_skill_script("data-query", "get_daily_kline")
 
     client = MagicMock(spec=MistClient)
     client.post.side_effect = [
@@ -142,17 +157,19 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
 
 def test_get_kline_data_converts_period_for_backend(kline_data):
     """get_kline_data accepts skill aliases but sends backend enum values."""
-    import get_kline_data
+    get_kline_data = load_skill_script("data-query", "get_kline_data")
     client = _mock_client_success(kline_data)
     with patch.object(get_kline_data, "MistClient", return_value=client):
-        get_kline_data.main(code="000001.SH", period="5min", start_date="2026-01-01", end_date="2026-04-13")
+        get_kline_data.main(
+            code="000001.SH", period="5min", start_date="2026-01-01", end_date="2026-04-13"
+        )
     body = client.post.call_args[0][1]
     assert body["period"] == 5
 
 
 def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
     """get_kline_data can actively collect minute/hour K-line windows."""
-    import get_kline_data
+    get_kline_data = load_skill_script("data-query", "get_kline_data")
 
     client = MagicMock(spec=MistClient)
     client.post.side_effect = [

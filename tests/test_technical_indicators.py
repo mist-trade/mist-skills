@@ -1,11 +1,9 @@
-import json
-import sys
-import os
-import pytest
-from unittest.mock import ANY, patch, MagicMock
-from shared.mist_client import MistClient
+from unittest.mock import ANY, MagicMock, patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "skills", "technical-indicators", "scripts"))
+import pytest
+
+from shared.mist_client import MistClient
+from tests.script_loader import load_skill_script
 
 
 def _mock_client(data):
@@ -17,15 +15,36 @@ def _mock_client(data):
 @pytest.fixture
 def macd_data():
     return [
-        {"macd": 10.5, "signal": 8.3, "histogram": 2.2, "symbol": "000001.SH", "time": "2026-04-10", "close": 3310},
-        {"macd": 11.0, "signal": 9.0, "histogram": 2.0, "symbol": "000001.SH", "time": "2026-04-11", "close": 3320},
+        {
+            "macd": 10.5,
+            "signal": 8.3,
+            "histogram": 2.2,
+            "symbol": "000001.SH",
+            "time": "2026-04-10",
+            "close": 3310,
+        },
+        {
+            "macd": 11.0,
+            "signal": 9.0,
+            "histogram": 2.0,
+            "symbol": "000001.SH",
+            "time": "2026-04-11",
+            "close": 3320,
+        },
     ]
 
 
 @pytest.fixture
 def kdj_data():
     return [
-        {"k": 75.2, "d": 70.1, "j": 85.4, "symbol": "000001.SH", "time": "2026-04-10", "close": 3310},
+        {
+            "k": 75.2,
+            "d": 70.1,
+            "j": 85.4,
+            "symbol": "000001.SH",
+            "time": "2026-04-10",
+            "close": 3310,
+        },
     ]
 
 
@@ -37,15 +56,17 @@ def rsi_data():
 
 
 def test_macd(macd_data):
-    import macd
+    macd = load_skill_script("technical-indicators", "macd")
     with patch.object(macd, "MistClient", return_value=_mock_client(macd_data)):
-        result = macd.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = macd.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert len(result) == 2
     assert result[0]["macd"] == 10.5
 
 
 def test_macd_endpoint(macd_data):
-    import macd
+    macd = load_skill_script("technical-indicators", "macd")
     client = _mock_client(macd_data)
     with patch.object(macd, "MistClient", return_value=client):
         macd.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
@@ -54,14 +75,16 @@ def test_macd_endpoint(macd_data):
 
 
 def test_kdj(kdj_data):
-    import kdj
+    kdj = load_skill_script("technical-indicators", "kdj")
     with patch.object(kdj, "MistClient", return_value=_mock_client(kdj_data)):
-        result = kdj.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = kdj.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert result[0]["k"] == 75.2
 
 
 def test_kdj_endpoint(kdj_data):
-    import kdj
+    kdj = load_skill_script("technical-indicators", "kdj")
     client = _mock_client(kdj_data)
     with patch.object(kdj, "MistClient", return_value=client):
         kdj.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
@@ -69,14 +92,16 @@ def test_kdj_endpoint(kdj_data):
 
 
 def test_rsi(rsi_data):
-    import rsi
+    rsi = load_skill_script("technical-indicators", "rsi")
     with patch.object(rsi, "MistClient", return_value=_mock_client(rsi_data)):
-        result = rsi.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
+        result = rsi.main(
+            code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
+        )
     assert result[0]["rsi"] == 65.3
 
 
 def test_rsi_endpoint(rsi_data):
-    import rsi
+    rsi = load_skill_script("technical-indicators", "rsi")
     client = _mock_client(rsi_data)
     with patch.object(rsi, "MistClient", return_value=client):
         rsi.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
@@ -85,10 +110,16 @@ def test_rsi_endpoint(rsi_data):
 
 def test_indicator_body_params(macd_data):
     """Scripts pass all optional params when provided."""
-    import macd
+    macd = load_skill_script("technical-indicators", "macd")
     client = _mock_client(macd_data)
     with patch.object(macd, "MistClient", return_value=client):
-        macd.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13", source="tdx")
+        macd.main(
+            code="000001.SH",
+            period="daily",
+            start_date="2026-01-01",
+            end_date="2026-04-13",
+            source="tdx",
+        )
     body = client.post.call_args[0][1]
     assert body["code"] == "000001"
     assert body["period"] == 1440
@@ -106,7 +137,7 @@ def test_indicator_body_params(macd_data):
     ],
 )
 def test_indicator_scripts_delegate_to_shared_runner(module_name, endpoint):
-    module = __import__(module_name)
+    module = load_skill_script("technical-indicators", module_name)
     calls = []
 
     def fake_run_simple_post(**kwargs):

@@ -1,14 +1,17 @@
 import requests
+
 from shared.config import get_base_url, get_timeout
 
 
 class MistConnectionError(Exception):
     """Raised when unable to connect to mist backend."""
+
     pass
 
 
 class MistApiError(Exception):
     """Raised when mist backend returns a business error."""
+
     def __init__(self, message: str, error_code: int):
         super().__init__(message)
         self.error_code = error_code
