@@ -1,7 +1,7 @@
 import json
 import sys
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 from shared.api_contracts import (
     FIELD_CODE,
@@ -46,17 +46,14 @@ def run_simple_post(
     client: MistClient | None = None,
 ) -> list:
     active_client = client or MistClient()
-    return cast(
-        list,
-        active_client.post(
-            endpoint,
-            build_analysis_body(
-                code=code,
-                period=period,
-                start_date=start_date,
-                end_date=end_date,
-                source=source,
-            ),
+    return active_client.post_list(
+        endpoint,
+        build_analysis_body(
+            code=code,
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
+            source=source,
         ),
     )
 

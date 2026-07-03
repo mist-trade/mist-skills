@@ -26,7 +26,7 @@ def test_build_analysis_body_normalizes_code_period_and_source():
 
 def test_run_simple_post_calls_expected_endpoint_with_shared_body():
     client = MagicMock()
-    client.post.return_value = [{"macd": 1.0}]
+    client.post_list.return_value = [{"macd": 1.0}]
 
     result = run_simple_post(
         endpoint="/indicator/macd",
@@ -39,7 +39,7 @@ def test_run_simple_post_calls_expected_endpoint_with_shared_body():
     )
 
     assert result == [{"macd": 1.0}]
-    client.post.assert_called_once_with(
+    client.post_list.assert_called_once_with(
         "/indicator/macd",
         {
             "code": "000001",

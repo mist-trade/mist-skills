@@ -1,5 +1,4 @@
 import argparse
-from typing import cast
 
 from shared.api_contracts import API_ENDPOINTS
 from shared.mist_client import MistClient
@@ -10,7 +9,7 @@ from shared.securities import split_exchange_suffix
 def main(code: str) -> dict:
     client = MistClient()
     backend_code, _ = split_exchange_suffix(code)
-    return cast(dict, client.get(API_ENDPOINTS.security_detail(backend_code)))
+    return client.get_object(API_ENDPOINTS.security_detail(backend_code))
 
 
 if __name__ == "__main__":

@@ -8,8 +8,10 @@ from tests.script_loader import load_skill_script
 
 def _mock_client_success(data):
     client = MagicMock(spec=MistClient)
-    client.get.return_value = data
-    client.post.return_value = data
+    client.get_object.return_value = data
+    client.get_list.return_value = data
+    client.post_object.return_value = data
+    client.post_list.return_value = data
     return client
 
 
@@ -59,7 +61,7 @@ def test_get_index_info(securities_data):
     with patch.object(get_index_info, "MistClient", return_value=client):
         result = get_index_info.main(code="000001.SH")
     assert _get_symbol(result) == "000001.SH"
-    client.get.assert_called_once_with("/security/v1/000001")
+    client.get_object.assert_called_once_with("/security/v1/000001")
 
 
 def test_get_kline_data(kline_data):
@@ -96,8 +98,8 @@ def test_get_daily_kline_sends_daily_period(kline_data):
     client = _mock_client_success(kline_data)
     with patch.object(get_daily_kline, "MistClient", return_value=client):
         get_daily_kline.main(code="000001.SH", start_date="2026-01-01", end_date="2026-04-13")
-    client.post.assert_called_once()
-    call_args = client.post.call_args
+    client.post_list.assert_called_once()
+    call_args = client.post_list.call_args
     assert call_args[0][1]["period"] == 1440
 
 
@@ -106,14 +108,16 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
     get_daily_kline = load_skill_script("data-query", "get_daily_kline")
 
     client = MagicMock(spec=MistClient)
-    client.post.side_effect = [
+    client.post_list.side_effect = [
         MistApiError("Index information not found", 400),
+        kline_data,
+    ]
+    client.post_object.side_effect = [
         {"code": "600519", "name": "贵州茅台"},
         {"code": "600519"},
         {"code": "600519", "period": 1440, "count": 1},
-        kline_data,
     ]
-    client.get.side_effect = [
+    client.get_object.side_effect = [
         MistApiError("Security with code 600519 not found", 404),
     ]
 
@@ -127,11 +131,11 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
         )
 
     assert result == kline_data
-    assert client.post.call_args_list[1].args == (
+    assert client.post_object.call_args_list[0].args == (
         "/security/v1/initialize",
         {"code": "600519", "name": "贵州茅台", "type": "STOCK"},
     )
-    assert client.post.call_args_list[2].args == (
+    assert client.post_object.call_args_list[1].args == (
         "/security/v1/sources",
         {
             "code": "600519",
@@ -141,7 +145,7 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
             "enabled": True,
         },
     )
-    assert client.post.call_args_list[3].args == (
+    assert client.post_object.call_args_list[2].args == (
         "/v1/collector/collect",
         {
             "code": "600519",
@@ -151,8 +155,8 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
             "source": "tdx",
         },
     )
-    assert client.post.call_args_list[4].args[1]["code"] == "600519"
-    assert client.post.call_args_list[4].args[1]["source"] == "tdx"
+    assert client.post_list.call_args_list[1].args[1]["code"] == "600519"
+    assert client.post_list.call_args_list[1].args[1]["source"] == "tdx"
 
 
 def test_get_kline_data_converts_period_for_backend(kline_data):
@@ -163,7 +167,7 @@ def test_get_kline_data_converts_period_for_backend(kline_data):
         get_kline_data.main(
             code="000001.SH", period="5min", start_date="2026-01-01", end_date="2026-04-13"
         )
-    body = client.post.call_args[0][1]
+    body = client.post_list.call_args[0][1]
     assert body["period"] == 5
 
 
@@ -172,14 +176,16 @@ def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
     get_kline_data = load_skill_script("data-query", "get_kline_data")
 
     client = MagicMock(spec=MistClient)
-    client.post.side_effect = [
+    client.post_list.side_effect = [
         MistApiError("Index information not found", 400),
+        kline_data,
+    ]
+    client.post_object.side_effect = [
         {"code": "600519", "name": "贵州茅台"},
         {"code": "600519"},
         {"code": "600519", "period": 60, "count": 1},
-        kline_data,
     ]
-    client.get.side_effect = [
+    client.get_object.side_effect = [
         MistApiError("Security with code 600519 not found", 404),
     ]
 
@@ -194,11 +200,11 @@ def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
         )
 
     assert result == kline_data
-    assert client.post.call_args_list[1].args == (
+    assert client.post_object.call_args_list[0].args == (
         "/security/v1/initialize",
         {"code": "600519", "name": "贵州茅台", "type": "STOCK"},
     )
-    assert client.post.call_args_list[3].args == (
+    assert client.post_object.call_args_list[2].args == (
         "/v1/collector/collect",
         {
             "code": "600519",
@@ -208,5 +214,5 @@ def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
             "source": "tdx",
         },
     )
-    assert client.post.call_args_list[4].args[1]["code"] == "600519"
-    assert client.post.call_args_list[4].args[1]["period"] == 60
+    assert client.post_list.call_args_list[1].args[1]["code"] == "600519"
+    assert client.post_list.call_args_list[1].args[1]["period"] == 60

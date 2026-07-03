@@ -28,24 +28,42 @@ def success_response():
 def test_get_success(client, success_response):
     """GET request returns data on success."""
     with patch("shared.mist_client.requests.get", return_value=success_response):
-        result = client.get("/security/v1/all")
+        result = client.get_object("/security/v1/all")
     assert result == {"key": "value"}
 
 
-def test_post_success(client, success_response):
+def test_post_list_success(client, success_response):
     """POST request returns data on success."""
     success_response.json.return_value["data"] = [{"macd": 1.0}]
     with patch("shared.mist_client.requests.post", return_value=success_response):
-        result = client.post("/indicator/macd", {"code": "000001", "period": "daily"})
+        result = client.post_list("/indicator/macd", {"code": "000001", "period": "daily"})
     assert result == [{"macd": 1.0}]
+
+
+def test_post_object_success(client, success_response):
+    """POST object helper returns object payloads on success."""
+    with patch("shared.mist_client.requests.post", return_value=success_response):
+        result = client.post_object("/security/v1/sources", {"code": "000001"})
+    assert result == {"key": "value"}
 
 
 def test_post_sends_json_body(client, success_response):
     """POST sends body as JSON."""
     with patch("shared.mist_client.requests.post", return_value=success_response) as mock_post:
-        client.post("/indicator/macd", {"code": "000001"})
+        client.post_object("/indicator/macd", {"code": "000001"})
     _, kwargs = mock_post.call_args
     assert kwargs["json"] == {"code": "000001"}
+
+
+def test_shape_mismatch_raises_api_error(client, success_response):
+    """Typed helpers reject unexpected response shapes."""
+    success_response.json.return_value["data"] = {"unexpected": True}
+    with (
+        patch("shared.mist_client.requests.post", return_value=success_response),
+        pytest.raises(MistApiError) as exc_info,
+    ):
+        client.post_list("/indicator/macd", {"code": "000001"})
+    assert "not a list" in str(exc_info.value)
 
 
 def test_api_error_on_success_false(client):
@@ -64,7 +82,7 @@ def test_api_error_on_success_false(client):
         patch("shared.mist_client.requests.get", return_value=resp),
         pytest.raises(MistApiError) as exc_info,
     ):
-        client.get("/security/v1/INVALID")
+        client.get_object("/security/v1/INVALID")
     assert "Symbol not found" in str(exc_info.value)
     assert exc_info.value.error_code == 2001
 
@@ -85,7 +103,7 @@ def test_success_without_data_raises_api_error(client):
         patch("shared.mist_client.requests.get", return_value=resp),
         pytest.raises(MistApiError) as exc_info,
     ):
-        client.get("/security/v1/all")
+        client.get_object("/security/v1/all")
 
     assert "missing data" in str(exc_info.value).lower()
     assert exc_info.value.error_code == 200
@@ -102,7 +120,7 @@ def test_connection_error(client):
         ),
         pytest.raises(MistConnectionError),
     ):
-        client.get("/security/v1/all")
+        client.get_object("/security/v1/all")
 
 
 def test_timeout_error(client):
@@ -113,7 +131,7 @@ def test_timeout_error(client):
         patch("shared.mist_client.requests.get", side_effect=requests.Timeout("Timed out")),
         pytest.raises(MistConnectionError),
     ):
-        client.get("/security/v1/all")
+        client.get_object("/security/v1/all")
 
 
 def test_base_url_from_config(client):

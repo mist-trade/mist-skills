@@ -1,6 +1,5 @@
 import sys
 from collections.abc import Collection
-from typing import Any, cast
 
 from shared.api_contracts import (
     API_ENDPOINTS,
@@ -19,7 +18,7 @@ from shared.api_contracts import (
     SECURITY_TYPE_STOCK,
 )
 from shared.config import get_default_source
-from shared.mist_client import MistApiError, MistClient
+from shared.mist_client import JsonObject, MistApiError, MistClient
 from shared.periods import PeriodInput, normalize_period
 from shared.securities import source_format_code, split_exchange_suffix
 
@@ -93,18 +92,15 @@ def query_kline(
     end_date: str,
     source: str,
 ) -> list:
-    return cast(
-        list,
-        client.post(
-            API_ENDPOINTS.indicator_k,
-            {
-                FIELD_CODE: code,
-                FIELD_PERIOD: period,
-                FIELD_START_DATE: start_date,
-                FIELD_END_DATE: end_date,
-                FIELD_SOURCE: source,
-            },
-        ),
+    return client.post_list(
+        API_ENDPOINTS.indicator_k,
+        {
+            FIELD_CODE: code,
+            FIELD_PERIOD: period,
+            FIELD_START_DATE: start_date,
+            FIELD_END_DATE: end_date,
+            FIELD_SOURCE: source,
+        },
     )
 
 
@@ -120,9 +116,9 @@ def ensure_security(
     name: str | None = None,
 ) -> None:
     try:
-        client.get(API_ENDPOINTS.security_detail(backend_code))
+        client.get_object(API_ENDPOINTS.security_detail(backend_code))
     except MistApiError:
-        client.post(
+        client.post_object(
             API_ENDPOINTS.security_initialize,
             {
                 FIELD_CODE: backend_code,
@@ -131,7 +127,7 @@ def ensure_security(
             },
         )
 
-    client.post(
+    client.post_object(
         API_ENDPOINTS.security_sources,
         {
             FIELD_CODE: backend_code,
@@ -150,8 +146,8 @@ def collect_kline(
     start_date: str,
     end_date: str,
     source: str,
-) -> dict[str, Any] | list:
-    return client.post(
+) -> JsonObject:
+    return client.post_object(
         API_ENDPOINTS.collector_collect,
         {
             FIELD_CODE: backend_code,
