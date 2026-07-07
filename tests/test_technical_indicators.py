@@ -8,7 +8,7 @@ from tests.script_loader import load_skill_script
 
 def _mock_client(data):
     client = MagicMock(spec=MistClient)
-    client.post.return_value = data
+    client.post_list.return_value = data
     return client
 
 
@@ -70,8 +70,8 @@ def test_macd_endpoint(macd_data):
     client = _mock_client(macd_data)
     with patch.object(macd, "MistClient", return_value=client):
         macd.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
-    client.post.assert_called_once()
-    assert client.post.call_args[0][0] == "/indicator/macd"
+    client.post_list.assert_called_once()
+    assert client.post_list.call_args[0][0] == "/indicator/macd"
 
 
 def test_kdj(kdj_data):
@@ -88,7 +88,7 @@ def test_kdj_endpoint(kdj_data):
     client = _mock_client(kdj_data)
     with patch.object(kdj, "MistClient", return_value=client):
         kdj.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
-    assert client.post.call_args[0][0] == "/indicator/kdj"
+    assert client.post_list.call_args[0][0] == "/indicator/kdj"
 
 
 def test_rsi(rsi_data):
@@ -105,7 +105,7 @@ def test_rsi_endpoint(rsi_data):
     client = _mock_client(rsi_data)
     with patch.object(rsi, "MistClient", return_value=client):
         rsi.main(code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13")
-    assert client.post.call_args[0][0] == "/indicator/rsi"
+    assert client.post_list.call_args[0][0] == "/indicator/rsi"
 
 
 def test_indicator_body_params(macd_data):
@@ -120,7 +120,7 @@ def test_indicator_body_params(macd_data):
             end_date="2026-04-13",
             source="tdx",
         )
-    body = client.post.call_args[0][1]
+    body = client.post_list.call_args[0][1]
     assert body["code"] == "000001"
     assert body["period"] == 1440
     assert body["startDate"] == "2026-01-01"

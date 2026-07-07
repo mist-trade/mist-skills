@@ -12,14 +12,16 @@ from shared.mist_client import MistApiError, MistClient
 def test_run_kline_query_collects_intraday_with_period_specific_body():
     client = MagicMock(spec=MistClient)
     kline_data = [{"symbol": "600519.SH", "open": 1700}]
-    client.post.side_effect = [
+    client.post_list.side_effect = [
         MistApiError("Index information not found", 400),
+        kline_data,
+    ]
+    client.post_object.side_effect = [
         {"code": "600519", "name": "贵州茅台"},
         {"code": "600519"},
         {"code": "600519", "period": 60, "count": 1},
-        kline_data,
     ]
-    client.get.side_effect = [
+    client.get_object.side_effect = [
         MistApiError("Security with code 600519 not found", 404),
     ]
 
@@ -35,7 +37,7 @@ def test_run_kline_query_collects_intraday_with_period_specific_body():
     )
 
     assert result == kline_data
-    assert client.post.call_args_list[3].args == (
+    assert client.post_object.call_args_list[2].args == (
         "/v1/collector/collect",
         {
             "code": "600519",
@@ -45,20 +47,22 @@ def test_run_kline_query_collects_intraday_with_period_specific_body():
             "source": "tdx",
         },
     )
-    assert client.post.call_args_list[4].args[1]["period"] == 60
+    assert client.post_list.call_args_list[1].args[1]["period"] == 60
 
 
 def test_run_kline_query_collects_daily_with_daily_body():
     client = MagicMock(spec=MistClient)
     kline_data = [{"symbol": "600519.SH", "open": 1700}]
-    client.post.side_effect = [
+    client.post_list.side_effect = [
         [],
+        kline_data,
+    ]
+    client.post_object.side_effect = [
         {"code": "600519", "name": "贵州茅台"},
         {"code": "600519"},
         {"code": "600519", "period": 1440, "count": 1},
-        kline_data,
     ]
-    client.get.side_effect = [
+    client.get_object.side_effect = [
         MistApiError("Security with code 600519 not found", 404),
     ]
 
@@ -74,7 +78,7 @@ def test_run_kline_query_collects_daily_with_daily_body():
     )
 
     assert result == kline_data
-    assert client.post.call_args_list[3].args == (
+    assert client.post_object.call_args_list[2].args == (
         "/v1/collector/collect",
         {
             "code": "600519",
@@ -102,13 +106,15 @@ def test_run_kline_query_rejects_disallowed_period():
         )
 
     assert exc_info.value.code == 1
-    client.post.assert_not_called()
+    client.post_list.assert_not_called()
+    client.post_object.assert_not_called()
+    client.get_object.assert_not_called()
 
 
 def test_run_kline_query_does_not_collect_based_on_error_message_text():
     client = MagicMock(spec=MistClient)
     error = MistApiError("Security with code 600519 not found", 500)
-    client.post.side_effect = error
+    client.post_list.side_effect = error
 
     with pytest.raises(MistApiError) as exc_info:
         run_kline_query(
@@ -122,5 +128,6 @@ def test_run_kline_query_does_not_collect_based_on_error_message_text():
         )
 
     assert exc_info.value is error
-    assert client.post.call_count == 1
-    client.get.assert_not_called()
+    assert client.post_list.call_count == 1
+    client.post_object.assert_not_called()
+    client.get_object.assert_not_called()

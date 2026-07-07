@@ -8,7 +8,7 @@ from tests.script_loader import load_skill_script
 
 def _mock_client(data):
     client = MagicMock(spec=MistClient)
-    client.post.return_value = data
+    client.post_list.return_value = data
     return client
 
 
@@ -57,7 +57,7 @@ def test_merge_k_endpoint(merged_k_data):
         merge_k.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post.call_args[0][0] == "/chan/merge-k"
+    assert client.post_list.call_args[0][0] == "/chan/merge-k"
 
 
 def test_create_bi(bi_data):
@@ -76,7 +76,7 @@ def test_create_bi_endpoint(bi_data):
         create_bi.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post.call_args[0][0] == "/chan/bi"
+    assert client.post_list.call_args[0][0] == "/chan/bi"
 
 
 def test_get_fenxing(fenxing_data):
@@ -95,7 +95,7 @@ def test_get_fenxing_endpoint(fenxing_data):
         get_fenxing.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post.call_args[0][0] == "/chan/fenxing"
+    assert client.post_list.call_args[0][0] == "/chan/fenxing"
 
 
 def test_analyze_chan(channel_data):
@@ -114,7 +114,7 @@ def test_analyze_chan_endpoint(channel_data):
         analyze_chan.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post.call_args[0][0] == "/chan/channel"
+    assert client.post_list.call_args[0][0] == "/chan/channel"
 
 
 @pytest.mark.parametrize(
@@ -138,8 +138,8 @@ def test_chan_body_params(module_name, endpoint, merged_k_data):
             end_date="2026-04-13",
             source="tdx",
         )
-    assert client.post.call_args[0][0] == endpoint
-    body = client.post.call_args[0][1]
+    assert client.post_list.call_args[0][0] == endpoint
+    body = client.post_list.call_args[0][1]
     assert body["code"] == "000001"
     assert body["period"] == 1440
     assert body["startDate"] == "2026-01-01"

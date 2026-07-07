@@ -1,6 +1,6 @@
 # mist-skills
 
-Anthropic Agent Skills for the mist stock analysis backend. Provides 3 Skills covering Chan Theory, technical indicators, and market data queries for A-shares.
+Anthropic Agent Skills for the mist stock analysis backend. Provides 4 Skills covering Chan Theory, technical indicators, market data queries, and strategy alert consumption for A-shares.
 
 ## Skills
 
@@ -9,6 +9,7 @@ Anthropic Agent Skills for the mist stock analysis backend. Provides 3 Skills co
 | `chan-theory` | Chan Theory analysis | merge_k, create_bi, get_fenxing, analyze_chan |
 | `technical-indicators` | MACD, KDJ, RSI | macd, kdj, rsi |
 | `data-query` | Market data retrieval | list_indices, get_index_info, get_kline_data, get_daily_kline |
+| `strategy-alerts` | Backend strategy alert consumption | shared helpers |
 
 ## Setup
 
@@ -51,7 +52,7 @@ For container-local AstrBot checks, see [RUNBOOK.md](RUNBOOK.md).
 
 ## Usage with AstrBot
 
-Install the three directories under `skills/` into AstrBot's
+Install the directories under `skills/` into AstrBot's
 `/AstrBot/data/skills/` directory. Also copy the repository `shared/` directory
 to `/AstrBot/data/shared/`; the scripts import the shared Mist client and period
 conversion helper from there. Direct script execution must run in an environment
@@ -74,6 +75,32 @@ PYTHONPATH=. python skills/data-query/scripts/list_indices.py
 PYTHONPATH=. python skills/data-query/scripts/get_daily_kline.py --code 600519.SH --name "贵州茅台" --start-date "2026-06-21" --end-date "2026-06-28"
 ```
 
+Strategy alert consumers should use backend alert event APIs only:
+
+```python
+from shared.strategy_alerts import (
+    list_pending_strategy_alerts,
+    mark_strategy_alert_delivered,
+    mark_strategy_alert_failed,
+)
+
+for event in list_pending_strategy_alerts():
+    try:
+        # Deliver through AstrBot or the active bot runtime.
+        mark_strategy_alert_delivered(
+            event["id"],
+            {"channel": "astrbot", "messageId": "msg-1"},
+        )
+    except Exception as exc:
+        mark_strategy_alert_failed(
+            event["id"],
+            {"channel": "astrbot", "error": str(exc)},
+        )
+```
+
+The alert helpers call `/v1/strategy-alert-events`; they do not evaluate
+strategy rules, poll datasource services, or use raw provider APIs.
+
 `get_daily_kline` can initialize a missing security, attach the default data
 source, collect the requested window, and retry the query. The indicator and Chan
 scripts still require K-line data to exist first, so run the data-query Skill
@@ -87,6 +114,7 @@ Supported first-version intents:
 - Query daily or intraday K-line data for a known A-share code.
 - Calculate MACD, KDJ, or RSI for a code and period.
 - Run Chan Theory merge, bi, fenxing, or channel analysis for a code and period.
+- Consume pending Mist strategy alerts and mark delivery outcomes.
 
 Defaults:
 

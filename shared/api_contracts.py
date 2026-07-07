@@ -8,6 +8,7 @@ class ApiEndpoints:
     security_sources: str = "/security/v1/sources"
     indicator_k: str = "/indicator/k"
     collector_collect: str = "/v1/collector/collect"
+    strategy_alert_events: str = "/v1/strategy-alert-events"
 
     def security_detail(self, code: str) -> str:
         return f"/security/v1/{code}"
@@ -17,6 +18,9 @@ class ApiEndpoints:
 
     def chan(self, name: str) -> str:
         return f"/chan/{name}"
+
+    def strategy_alert_event_delivery(self, alert_event_id: int, outcome: str) -> str:
+        return f"{self.strategy_alert_events}/{alert_event_id}/{outcome}"
 
 
 API_ENDPOINTS = ApiEndpoints()

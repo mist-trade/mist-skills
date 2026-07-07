@@ -14,6 +14,11 @@ def test_api_contracts_define_current_backend_paths():
     assert API_ENDPOINTS.indicator("macd") == "/indicator/macd"
     assert API_ENDPOINTS.chan("merge-k") == "/chan/merge-k"
     assert API_ENDPOINTS.collector_collect == "/v1/collector/collect"
+    assert API_ENDPOINTS.strategy_alert_events == "/v1/strategy-alert-events"
+    assert (
+        API_ENDPOINTS.strategy_alert_event_delivery(1, "delivered")
+        == "/v1/strategy-alert-events/1/delivered"
+    )
 
 
 def test_api_contracts_define_payload_fields_and_retry_codes():

@@ -6,7 +6,8 @@ against the live Mist backend.
 ## Runtime Contract
 
 - AstrBot data mount: `/Users/moyui/sean/napcat-astrbot/data` -> `/AstrBot/data`
-- Active skills: `data-query`, `technical-indicators`, `chan-theory`
+- Active skills: `data-query`, `technical-indicators`, `chan-theory`,
+  `strategy-alerts`
 - Python import path: `PYTHONPATH=/AstrBot/data`
 - Backend URL: `MIST_API_BASE_URL=http://192.168.31.182:8001`
 - Default source: `MIST_DEFAULT_SOURCE=tdx`
@@ -50,3 +51,6 @@ return an empty array when the selected window does not produce a channel.
 5. Run a K-line script before indicator or Chan Theory scripts for new symbols.
 6. For `Index information not found`, confirm the security exists and scripts
    are sending backend codes without exchange suffixes.
+7. For strategy alerts, use `shared.strategy_alerts` helpers and confirm calls
+   stay on `/v1/strategy-alert-events` rather than datasource or raw provider
+   paths.
