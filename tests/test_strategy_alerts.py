@@ -32,9 +32,7 @@ def test_list_pending_strategy_alerts_uses_backend_alert_event_api():
     alerts = list_pending_strategy_alerts(client=client)
 
     assert alerts == [{"id": 1, "status": "pending"}]
-    assert client.calls == [
-        ("GET_LIST", "/v1/strategy-alert-events?status=pending", None)
-    ]
+    assert client.calls == [("GET_LIST", "/v1/strategy-alert-events?status=pending", None)]
     assert_no_datasource_or_raw_paths(client)
 
 
