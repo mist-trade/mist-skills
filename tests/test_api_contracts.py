@@ -6,13 +6,13 @@ def test_api_contracts_define_current_backend_paths():
 
     API_ENDPOINTS = contracts.API_ENDPOINTS
 
-    assert API_ENDPOINTS.security_all == "/security/v1/all"
-    assert API_ENDPOINTS.security_detail("600519") == "/security/v1/600519"
-    assert API_ENDPOINTS.security_initialize == "/security/v1/initialize"
-    assert API_ENDPOINTS.security_sources == "/security/v1/sources"
-    assert API_ENDPOINTS.indicator_k == "/indicator/k"
-    assert API_ENDPOINTS.indicator("macd") == "/indicator/macd"
-    assert API_ENDPOINTS.chan("merge-k") == "/chan/merge-k"
+    assert API_ENDPOINTS.security_all == "/v1/securities"
+    assert API_ENDPOINTS.security_detail("600519") == "/v1/securities/600519"
+    assert API_ENDPOINTS.security_initialize == "/v1/securities"
+    assert API_ENDPOINTS.security_sources == "/v1/security-sources"
+    assert API_ENDPOINTS.indicator_k == "/v1/indicators/k"
+    assert API_ENDPOINTS.indicator("macd") == "/v1/indicators/macd"
+    assert API_ENDPOINTS.chan("merge-k") == "/v1/chan/merge-k"
     assert API_ENDPOINTS.collector_collect == "/v1/collector/collect"
     assert API_ENDPOINTS.strategy_alert_events == "/v1/strategy-alert-events"
     assert (

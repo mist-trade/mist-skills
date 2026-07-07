@@ -59,7 +59,7 @@ Parameters:
 1. Run `list_indices` first to discover available securities
 2. Use `get_index_info` to verify a specific symbol
 3. Query K-line data with `get_kline_data` (intraday/minute/hour) or `get_daily_kline` (daily)
-4. For a daily query like "贵州茅台最近一周日线", call `get_daily_kline` directly with `--code 600519.SH --name "贵州茅台"`; do not try `POST /security/v1`, because Mist uses `POST /security/v1/initialize`, `POST /security/v1/sources`, and `POST /v1/collector/collect` internally.
+4. For a daily query like "贵州茅台最近一周日线", call `get_daily_kline` directly with `--code 600519.SH --name "贵州茅台"`; do not call the security API manually, because Mist uses `POST /v1/securities`, `POST /v1/security-sources`, and `POST /v1/collector/collect` internally.
 
 ## AstrBot Intent Examples
 

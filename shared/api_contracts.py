@@ -3,21 +3,21 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ApiEndpoints:
-    security_all: str = "/security/v1/all"
-    security_initialize: str = "/security/v1/initialize"
-    security_sources: str = "/security/v1/sources"
-    indicator_k: str = "/indicator/k"
+    security_all: str = "/v1/securities"
+    security_initialize: str = "/v1/securities"
+    security_sources: str = "/v1/security-sources"
+    indicator_k: str = "/v1/indicators/k"
     collector_collect: str = "/v1/collector/collect"
     strategy_alert_events: str = "/v1/strategy-alert-events"
 
     def security_detail(self, code: str) -> str:
-        return f"/security/v1/{code}"
+        return f"/v1/securities/{code}"
 
     def indicator(self, name: str) -> str:
-        return f"/indicator/{name}"
+        return f"/v1/indicators/{name}"
 
     def chan(self, name: str) -> str:
-        return f"/chan/{name}"
+        return f"/v1/chan/{name}"
 
     def strategy_alert_event_delivery(self, alert_event_id: int, outcome: str) -> str:
         return f"{self.strategy_alert_events}/{alert_event_id}/{outcome}"

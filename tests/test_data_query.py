@@ -61,7 +61,7 @@ def test_get_index_info(securities_data):
     with patch.object(get_index_info, "MistClient", return_value=client):
         result = get_index_info.main(code="000001.SH")
     assert _get_symbol(result) == "000001.SH"
-    client.get_object.assert_called_once_with("/security/v1/000001")
+    client.get_object.assert_called_once_with("/v1/securities/000001")
 
 
 def test_get_kline_data(kline_data):
@@ -132,11 +132,11 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
 
     assert result == kline_data
     assert client.post_object.call_args_list[0].args == (
-        "/security/v1/initialize",
+        "/v1/securities",
         {"code": "600519", "name": "贵州茅台", "type": "STOCK"},
     )
     assert client.post_object.call_args_list[1].args == (
-        "/security/v1/sources",
+        "/v1/security-sources",
         {
             "code": "600519",
             "source": "tdx",
@@ -201,7 +201,7 @@ def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
 
     assert result == kline_data
     assert client.post_object.call_args_list[0].args == (
-        "/security/v1/initialize",
+        "/v1/securities",
         {"code": "600519", "name": "贵州茅台", "type": "STOCK"},
     )
     assert client.post_object.call_args_list[2].args == (

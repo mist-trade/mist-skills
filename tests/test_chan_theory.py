@@ -57,7 +57,7 @@ def test_merge_k_endpoint(merged_k_data):
         merge_k.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post_list.call_args[0][0] == "/chan/merge-k"
+    assert client.post_list.call_args[0][0] == "/v1/chan/merge-k"
 
 
 def test_create_bi(bi_data):
@@ -76,7 +76,7 @@ def test_create_bi_endpoint(bi_data):
         create_bi.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post_list.call_args[0][0] == "/chan/bi"
+    assert client.post_list.call_args[0][0] == "/v1/chan/bi"
 
 
 def test_get_fenxing(fenxing_data):
@@ -95,7 +95,7 @@ def test_get_fenxing_endpoint(fenxing_data):
         get_fenxing.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post_list.call_args[0][0] == "/chan/fenxing"
+    assert client.post_list.call_args[0][0] == "/v1/chan/fenxing"
 
 
 def test_analyze_chan(channel_data):
@@ -114,16 +114,16 @@ def test_analyze_chan_endpoint(channel_data):
         analyze_chan.main(
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
-    assert client.post_list.call_args[0][0] == "/chan/channel"
+    assert client.post_list.call_args[0][0] == "/v1/chan/channel"
 
 
 @pytest.mark.parametrize(
     ("module_name", "endpoint"),
     [
-        ("merge_k", "/chan/merge-k"),
-        ("create_bi", "/chan/bi"),
-        ("get_fenxing", "/chan/fenxing"),
-        ("analyze_chan", "/chan/channel"),
+        ("merge_k", "/v1/chan/merge-k"),
+        ("create_bi", "/v1/chan/bi"),
+        ("get_fenxing", "/v1/chan/fenxing"),
+        ("analyze_chan", "/v1/chan/channel"),
     ],
 )
 def test_chan_body_params(module_name, endpoint, merged_k_data):
@@ -150,10 +150,10 @@ def test_chan_body_params(module_name, endpoint, merged_k_data):
 @pytest.mark.parametrize(
     ("module_name", "endpoint"),
     [
-        ("merge_k", "/chan/merge-k"),
-        ("create_bi", "/chan/bi"),
-        ("get_fenxing", "/chan/fenxing"),
-        ("analyze_chan", "/chan/channel"),
+        ("merge_k", "/v1/chan/merge-k"),
+        ("create_bi", "/v1/chan/bi"),
+        ("get_fenxing", "/v1/chan/fenxing"),
+        ("analyze_chan", "/v1/chan/channel"),
     ],
 )
 def test_chan_scripts_delegate_to_shared_runner(module_name, endpoint):
