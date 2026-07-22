@@ -1,56 +1,54 @@
-# AstrBot Mist Skills Runbook
+# AstrBot Mist Skills 验证手册
 
-This runbook verifies the deployed AstrBot container can execute `mist-skills`
-against the live Mist backend.
+本文验证已部署 AstrBot 能否通过生产 gateway 调用 `mist-skills`。
 
-## Runtime Contract
+## 运行契约
 
-- AstrBot data mount: `/Users/moyui/sean/napcat-astrbot/data` -> `/AstrBot/data`
-- Active skills: `data-query`, `technical-indicators`, `chan-theory`,
-  `strategy-alerts`
-- Python import path: `PYTHONPATH=/AstrBot/data`
-- Backend URL: `MIST_API_BASE_URL=http://192.168.31.182:8001`
-- Default source: `MIST_DEFAULT_SOURCE=tdx`
+- Skills：`data-query`、`technical-indicators`、`chan-theory`、
+  `strategy-alerts`。
+- Python path：`PYTHONPATH=/AstrBot/data`。
+- Backend：`MIST_API_BASE_URL=http://www.moyui.mist/api/mist`。
+- 默认 source：`MIST_DEFAULT_SOURCE=tdx`。
 
-## Container Smoke
+容器如果不能解析 `www.moyui.mist`，先修复 Docker DNS/hosts；临时诊断可使用
+`http://host.docker.internal/api/mist`，不要改成 datasource `:9001/:9002`。
 
-Run from the Docker host:
-
-```bash
-docker exec astrbot sh -lc 'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/data-query/scripts/list_indices.py'
-```
-
-Expected: JSON array of securities, including `600519`.
+## 容器 smoke
 
 ```bash
-docker exec astrbot sh -lc 'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/data-query/scripts/get_daily_kline.py --code 600519.SH --name "贵州茅台" --start-date 2026-06-21 --end-date 2026-06-28 --source tdx'
+docker exec astrbot sh -lc \
+  'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/data-query/scripts/list_indices.py'
 ```
 
-Expected: non-empty JSON array of daily K-lines.
+预期：返回证券 JSON 数组。
 
 ```bash
-docker exec astrbot sh -lc 'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/technical-indicators/scripts/macd.py --code 600519.SH --period daily --start-date 2026-01-01 --end-date 2026-06-28 --source tdx'
+docker exec astrbot sh -lc \
+  'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/data-query/scripts/get_daily_kline.py --code 600519.SH --name "贵州茅台" --start-date 2026-06-21 --end-date 2026-06-28 --source tdx'
 ```
 
-Expected: non-empty JSON array with non-null `macd` values after the warm-up
-period.
+预期：返回非空日线数组。
 
 ```bash
-docker exec astrbot sh -lc 'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/chan-theory/scripts/merge_k.py --code 600519.SH --period daily --start-date 2026-01-01 --end-date 2026-06-28 --source tdx'
+docker exec astrbot sh -lc \
+  'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/technical-indicators/scripts/macd.py --code 600519.SH --period daily --start-date 2026-01-01 --end-date 2026-06-28 --source tdx'
 ```
 
-Expected: non-empty JSON array of merged K-line groups. `analyze_chan.py` may
-return an empty array when the selected window does not produce a channel.
+预期：warm-up 后存在非空 `macd`。
 
-## Debug Order
+```bash
+docker exec astrbot sh -lc \
+  'PYTHONPATH=/AstrBot/data python /AstrBot/data/skills/chan-theory/scripts/merge_k.py --code 600519.SH --period daily --start-date 2026-01-01 --end-date 2026-06-28 --source tdx'
+```
 
-1. Check `docker ps` confirms `astrbot` is running.
-2. Check `docker exec astrbot env | grep -E 'MIST_|PYTHONPATH'`.
-3. Check `GET $MIST_API_BASE_URL/app/hello`.
-4. Run `list_indices.py`.
-5. Run a K-line script before indicator or Chan Theory scripts for new symbols.
-6. For `Index information not found`, confirm the security exists and scripts
-   are sending backend codes without exchange suffixes.
-7. For strategy alerts, use `shared.strategy_alerts` helpers and confirm calls
-   stay on `/v1/strategy-alert-events` rather than datasource or raw provider
-   paths.
+预期：返回合并 K；窗口不形成中枢时 `analyze_chan.py` 可以返回空数组。
+
+## 排查顺序
+
+1. `docker ps` 确认 `astrbot` 运行。
+2. 检查 `MIST_*` 和 `PYTHONPATH`。
+3. 请求 `$MIST_API_BASE_URL/app/hello`。
+4. 运行 `list_indices.py`。
+5. 新证券先运行 K 线脚本，再运行指标/缠论。
+6. `Index information not found` 时检查证券是否存在及 code canonicalization。
+7. 告警只使用 `/v1/strategy-alert-events`，不得调用 datasource 或 raw provider。

@@ -1,17 +1,19 @@
-# mist-skills
+# Mist Skills
 
-Anthropic Agent Skills for the mist stock analysis backend. Provides 4 Skills covering Chan Theory, technical indicators, market data queries, and strategy alert consumption for A-shares.
+Mist Skills 为 Codex/Agent/AstrBot 提供缠论、技术指标、行情查询和策略告警消费能力。
+所有脚本只调用 Mist backend `/v1/*`，不直连 TDX/QMT datasource，也不执行 native
+provider raw API。
 
 ## Skills
 
-| Skill | Description | Scripts |
-|-------|-------------|---------|
-| `chan-theory` | Chan Theory analysis | merge_k, create_bi, get_fenxing, analyze_chan |
-| `technical-indicators` | MACD, KDJ, RSI | macd, kdj, rsi |
-| `data-query` | Market data retrieval | list_indices, get_index_info, get_kline_data, get_daily_kline |
-| `strategy-alerts` | Backend strategy alert consumption | shared helpers |
+| Skill | 用途 |
+|---|---|
+| `chan-theory` | merge K、笔、分型、中枢分析 |
+| `technical-indicators` | MACD、KDJ、RSI |
+| `data-query` | 证券、指数与 K 线查询/补齐 |
+| `strategy-alerts` | 消费 backend strategy alert event 并回写投递结果 |
 
-## Setup
+## 安装
 
 ```bash
 python3.10 -m venv .venv
@@ -19,114 +21,50 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-## Configuration
+## 配置
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MIST_API_BASE_URL` | `http://127.0.0.1:8001` | mist backend URL |
-| `MIST_API_TIMEOUT` | `30` | Request timeout (seconds) |
-| `MIST_DEFAULT_SOURCE` | `tdx` | Default source for scripts that can collect missing data |
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `MIST_API_BASE_URL` | `http://127.0.0.1:8001` | Mist backend base URL |
+| `MIST_API_TIMEOUT` | `30` | 请求超时秒数 |
+| `MIST_DEFAULT_SOURCE` | `tdx` | 需要补数据时的默认 source |
 
-For the current Windows Mist appliance used by AstrBot, set:
+生产环境优先通过同源 gateway：
 
 ```bash
-export MIST_API_BASE_URL=http://192.168.31.182:8001
+export MIST_API_BASE_URL=http://www.moyui.mist/api/mist
 ```
 
-If AstrBot runs in Docker Desktop and the Mist backend runs on the Docker host
-instead, use `http://host.docker.internal:8001`.
+如果调用环境不能解析该主机名，可临时使用
+`http://<windows-lan-ip>/api/mist`。只有同机诊断才直接使用 `:8001`。
 
-## Mist API Compatibility
+Backend period 使用数字 enum（`1`、`5`、`15`、`30`、`60`、`1440`）；Skills
+保留 `5min`、`daily` 等用户别名，并在请求前转换。
 
-The current Mist backend expects numeric period enum values (`1`, `5`, `15`,
-`30`, `60`, `1440`). These Skills keep user-facing aliases such as `5min` and
-`daily`, then convert them before sending requests to Mist.
-
-## Testing
+## 测试
 
 ```bash
 pytest
+PYTHONPATH=. python skills/data-query/scripts/list_indices.py
+PYTHONPATH=. python skills/data-query/scripts/get_daily_kline.py \
+  --code 600519.SH --name 贵州茅台 \
+  --start-date 2026-06-21 --end-date 2026-06-28
 ```
 
-For container-local AstrBot checks, see [RUNBOOK.md](RUNBOOK.md).
+新证券先运行 data-query 补齐 K 线，再执行指标或缠论。空数组表示当前窗口无结果，
+不等同于脚本异常。
 
-## Usage with AstrBot
+## AstrBot
 
-Install the directories under `skills/` into AstrBot's
-`/AstrBot/data/skills/` directory. Also copy the repository `shared/` directory
-to `/AstrBot/data/shared/`; the scripts import the shared Mist client and period
-conversion helper from there. Direct script execution must run in an environment
-where `shared` is importable, either by installing this package or by setting
-`PYTHONPATH=/AstrBot/data` in the AstrBot container.
-
-For the previously deployed Docker Desktop AstrBot stack, make sure the AstrBot
-container environment includes:
+把 `skills/` 安装到 `/AstrBot/data/skills/`，把 `shared/` 放到
+`/AstrBot/data/shared/`，并设置：
 
 ```bash
-MIST_API_BASE_URL=http://192.168.31.182:8001
+PYTHONPATH=/AstrBot/data
+MIST_API_BASE_URL=http://www.moyui.mist/api/mist
 MIST_API_TIMEOUT=30
 MIST_DEFAULT_SOURCE=tdx
 ```
 
-Quick smoke check from the same Python environment:
-
-```bash
-PYTHONPATH=. python skills/data-query/scripts/list_indices.py
-PYTHONPATH=. python skills/data-query/scripts/get_daily_kline.py --code 600519.SH --name "贵州茅台" --start-date "2026-06-21" --end-date "2026-06-28"
-```
-
-Strategy alert consumers should use backend alert event APIs only:
-
-```python
-from shared.strategy_alerts import (
-    list_pending_strategy_alerts,
-    mark_strategy_alert_delivered,
-    mark_strategy_alert_failed,
-)
-
-for event in list_pending_strategy_alerts():
-    try:
-        # Deliver through AstrBot or the active bot runtime.
-        mark_strategy_alert_delivered(
-            event["id"],
-            {"channel": "astrbot", "messageId": "msg-1"},
-        )
-    except Exception as exc:
-        mark_strategy_alert_failed(
-            event["id"],
-            {"channel": "astrbot", "error": str(exc)},
-        )
-```
-
-The alert helpers call `/v1/strategy-alert-events`; they do not evaluate
-strategy rules, poll datasource services, or use raw provider APIs.
-
-`get_daily_kline` can initialize a missing security, attach the default data
-source, collect the requested window, and retry the query. The indicator and Chan
-scripts still require K-line data to exist first, so run the data-query Skill
-before indicator analysis for a brand-new symbol.
-
-## First Bot Experience
-
-Supported first-version intents:
-
-- List available securities.
-- Query daily or intraday K-line data for a known A-share code.
-- Calculate MACD, KDJ, or RSI for a code and period.
-- Run Chan Theory merge, bi, fenxing, or channel analysis for a code and period.
-- Consume pending Mist strategy alerts and mark delivery outcomes.
-
-Defaults:
-
-- `source`: `tdx`
-- `period`: use the period requested by the user; if omitted, prefer `daily`
-- date range: use the user's date range; for recent daily questions, a 30- to
-  180-trading-day range gives indicators enough warm-up data
-
-Guardrails:
-
-- Ask for or infer a security code before calling scripts.
-- Use `--name` when a script may need to initialize a new security.
-- Reject overly broad requests that would require many symbols or unbounded
-  history.
-- Treat empty arrays as "no data/result for this window", not as script failure.
+策略告警只使用 `/v1/strategy-alert-events`。Skills 不计算策略规则、不轮询
+datasource、不直接保存行情。容器实测步骤见 [RUNBOOK.md](RUNBOOK.md)。
