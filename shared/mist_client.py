@@ -6,13 +6,9 @@ from shared.config import get_base_url, get_timeout
 
 JsonObject: TypeAlias = dict[str, Any]
 JsonArray: TypeAlias = list[Any]
-MistPayload: TypeAlias = JsonObject | JsonArray
 
 #: HTTP response header carrying the server-generated request id.
 REQUEST_ID_HEADER = "x-request-id"
-
-#: Fields every non-204 JSON response must carry as the unified backend envelope.
-_ENVELOPE_REQUIRED_FIELDS = ("success", "statusCode", "message", "timestamp", "requestId", "path")
 
 
 class MistConnectionError(Exception):
@@ -110,6 +106,30 @@ def _require_str_field(
     return value
 
 
+def _is_successful_http_status(status: int) -> bool:
+    return 200 <= status < 300
+
+
+def _parse_errors_field(
+    value: Any,
+    *,
+    http_status: int,
+    request_id: str,
+) -> dict[str, list[str]]:
+    if not isinstance(value, dict) or not all(
+        isinstance(key, str)
+        and isinstance(messages, list)
+        and all(isinstance(message, str) for message in messages)
+        for key, messages in value.items()
+    ):
+        raise MistApiContractError(
+            'Envelope field "errors" must be an object of string arrays',
+            http_status=http_status,
+            request_id=request_id,
+        )
+    return value
+
+
 def parse_envelope(body: Any, http_status: int, request_id: str | None) -> Any:
     """Strictly parse a non-204 JSON body against the unified backend envelope.
 
@@ -160,6 +180,20 @@ def parse_envelope(body: Any, http_status: int, request_id: str | None) -> Any:
     _require_str_field(body, "timestamp", http_status=http_status, request_id=request_id)
     _require_str_field(body, "path", http_status=http_status, request_id=request_id)
 
+    successful_http_status = _is_successful_http_status(http_status)
+    if success and not successful_http_status:
+        raise MistApiContractError(
+            f"A non-2xx HTTP response cannot declare success=true (HTTP {http_status})",
+            http_status=http_status,
+            request_id=envelope_request_id,
+        )
+    if not success and successful_http_status and http_status != 200:
+        raise MistApiContractError(
+            f"Only HTTP 200 may carry an expected business rejection (HTTP {http_status})",
+            http_status=http_status,
+            request_id=envelope_request_id,
+        )
+
     if success:
         # A non-204 success envelope must carry the documented `data` slot; it may
         # legitimately be None when the controller returns no business data.
@@ -173,15 +207,18 @@ def parse_envelope(body: Any, http_status: int, request_id: str | None) -> Any:
         return body["data"]
 
     code = _require_str_field(body, "code", http_status=http_status, request_id=request_id)
-    raw_errors = body.get("errors")
     errors: dict[str, list[str]] | None
-    if raw_errors is None:
+    if "errors" not in body:
         errors = None
-    elif isinstance(raw_errors, dict):
-        errors = raw_errors
     else:
-        raise MistApiContractError(
-            'Envelope field "errors" must be an object',
+        if http_status != 400 or code != "VALIDATION_ERROR":
+            raise MistApiContractError(
+                'Envelope field "errors" is only valid for HTTP 400 VALIDATION_ERROR',
+                http_status=http_status,
+                request_id=envelope_request_id,
+            )
+        errors = _parse_errors_field(
+            body["errors"],
             http_status=http_status,
             request_id=envelope_request_id,
         )
@@ -202,16 +239,36 @@ class MistClient:
         self.timeout = timeout or get_timeout()
 
     def get_object(self, path: str) -> JsonObject:
-        return self._expect_object(self._get_payload(path))
+        payload, http_status, request_id = self._request_payload("GET", path, None)
+        return self._expect_object(
+            payload,
+            http_status=http_status,
+            request_id=request_id,
+        )
 
     def get_list(self, path: str) -> JsonArray:
-        return self._expect_list(self._get_payload(path))
+        payload, http_status, request_id = self._request_payload("GET", path, None)
+        return self._expect_list(
+            payload,
+            http_status=http_status,
+            request_id=request_id,
+        )
 
     def post_object(self, path: str, body: JsonObject) -> JsonObject:
-        return self._expect_object(self._post_payload(path, body))
+        payload, http_status, request_id = self._request_payload("POST", path, body)
+        return self._expect_object(
+            payload,
+            http_status=http_status,
+            request_id=request_id,
+        )
 
     def post_list(self, path: str, body: JsonObject) -> JsonArray:
-        return self._expect_list(self._post_payload(path, body))
+        payload, http_status, request_id = self._request_payload("POST", path, body)
+        return self._expect_list(
+            payload,
+            http_status=http_status,
+            request_id=request_id,
+        )
 
     def request_no_content(
         self, method: str, path: str, body: JsonObject | None = None
@@ -232,24 +289,28 @@ class MistClient:
             )
         return request_id
 
-    def _get_payload(self, path: str) -> MistPayload:
-        resp = self._send("GET", path, None)
-        return self._parse_response(resp)
-
-    def _post_payload(self, path: str, body: JsonObject) -> MistPayload:
-        resp = self._send("POST", path, body)
-        return self._parse_response(resp)
+    def _request_payload(
+        self,
+        method: str,
+        path: str,
+        body: JsonObject | None,
+    ) -> tuple[Any, int, str | None]:
+        resp = self._send(method, path, body)
+        request_id = _envelope_request_id(resp)
+        return self._parse_response(resp), resp.status_code, request_id
 
     def _send(self, method: str, path: str, body: JsonObject | None) -> requests.Response:
         url = f"{self.base_url}{path}"
         try:
             if method == "GET":
                 return requests.get(url, timeout=self.timeout)
-            return requests.post(url, json=body, timeout=self.timeout)
+            if method == "POST":
+                return requests.post(url, json=body, timeout=self.timeout)
+            return requests.request(method, url, json=body, timeout=self.timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
             raise MistConnectionError(f"Cannot connect to mist backend: {e}") from e
 
-    def _parse_response(self, resp: requests.Response) -> MistPayload:
+    def _parse_response(self, resp: requests.Response) -> Any:
         request_id = _envelope_request_id(resp)
         try:
             body = resp.json()
@@ -261,18 +322,32 @@ class MistClient:
             ) from e
         return parse_envelope(body, resp.status_code, request_id)
 
-    def _expect_object(self, payload: MistPayload) -> JsonObject:
+    def _expect_object(
+        self,
+        payload: Any,
+        *,
+        http_status: int,
+        request_id: str | None,
+    ) -> JsonObject:
         if not isinstance(payload, dict):
             raise MistApiContractError(
                 "Success response data is not an object",
-                http_status=0,
+                http_status=http_status,
+                request_id=request_id,
             )
         return payload
 
-    def _expect_list(self, payload: MistPayload) -> JsonArray:
+    def _expect_list(
+        self,
+        payload: Any,
+        *,
+        http_status: int,
+        request_id: str | None,
+    ) -> JsonArray:
         if not isinstance(payload, list):
             raise MistApiContractError(
                 "Success response data is not a list",
-                http_status=0,
+                http_status=http_status,
+                request_id=request_id,
             )
         return payload

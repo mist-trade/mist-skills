@@ -52,18 +52,20 @@ def error_envelope(
     body_status=None,
 ):
     rid = request_id or f"http-{code.lower()}"
+    body = {
+        "success": False,
+        "statusCode": body_status if body_status is not None else status,
+        "code": code,
+        "message": message,
+        "data": data,
+        "timestamp": "2026-08-03T00:00:00.000Z",
+        "requestId": rid,
+        "path": "/v1/securities",
+    }
+    if errors is not None:
+        body["errors"] = errors
     return _resp(
-        {
-            "success": False,
-            "statusCode": body_status if body_status is not None else status,
-            "code": code,
-            "message": message,
-            "data": data,
-            "errors": errors,
-            "timestamp": "2026-08-03T00:00:00.000Z",
-            "requestId": rid,
-            "path": "/v1/securities",
-        },
+        body,
         status=status,
         request_id=rid,
     )
@@ -214,6 +216,81 @@ class TestParseEnvelope:
                 None,
             )
 
+    def test_rejects_non_2xx_response_that_declares_success(self):
+        with pytest.raises(MistApiContractError):
+            parse_envelope(
+                {
+                    "success": True,
+                    "statusCode": 500,
+                    "message": "SUCCESS",
+                    "data": {"unsafe": True},
+                    "timestamp": "2026-08-03T00:00:00.000Z",
+                    "requestId": "http-invalid-success",
+                    "path": "/v1/securities",
+                },
+                500,
+                None,
+            )
+
+    def test_rejects_non_200_2xx_response_that_declares_error(self):
+        with pytest.raises(MistApiContractError):
+            parse_envelope(
+                {
+                    "success": False,
+                    "statusCode": 201,
+                    "code": "INVALID_CREATED_REJECTION",
+                    "message": "invalid branch",
+                    "timestamp": "2026-08-03T00:00:00.000Z",
+                    "requestId": "http-invalid-error",
+                    "path": "/v1/strategies",
+                },
+                201,
+                None,
+            )
+
+    @pytest.mark.parametrize(
+        "errors",
+        [
+            ["not", "an", "object"],
+            {"code": "must be an array"},
+            {"code": ["valid", 1]},
+            None,
+        ],
+    )
+    def test_rejects_malformed_validation_errors(self, errors):
+        with pytest.raises(MistApiContractError):
+            parse_envelope(
+                {
+                    "success": False,
+                    "statusCode": 400,
+                    "code": "VALIDATION_ERROR",
+                    "message": "Request validation failed",
+                    "errors": errors,
+                    "timestamp": "2026-08-03T00:00:00.000Z",
+                    "requestId": "http-invalid-errors",
+                    "path": "/v1/securities",
+                },
+                400,
+                None,
+            )
+
+    def test_rejects_validation_errors_on_non_validation_envelope(self):
+        with pytest.raises(MistApiContractError):
+            parse_envelope(
+                {
+                    "success": False,
+                    "statusCode": 500,
+                    "code": "INTERNAL_ERROR",
+                    "message": "Internal server error",
+                    "errors": {"code": ["must not be empty"]},
+                    "timestamp": "2026-08-03T00:00:00.000Z",
+                    "requestId": "http-invalid-errors-owner",
+                    "path": "/v1/securities",
+                },
+                500,
+                None,
+            )
+
     def test_tolerates_additive_unknown_fields(self):
         data = parse_envelope(
             {
@@ -302,6 +379,16 @@ class TestMistClientShapeMismatch:
             pytest.raises(MistApiContractError),
         ):
             client.post_object("/v1/security-sources", {"code": "000001"})
+
+    def test_shape_mismatch_preserves_http_diagnostics(self, client, success_response):
+        success_response.json.return_value["data"] = {"unexpected": True}
+        with (
+            patch("shared.mist_client.requests.post", return_value=success_response),
+            pytest.raises(MistApiContractError) as exc_info,
+        ):
+            client.post_list("/v1/indicators/macd", {"code": "000001"})
+        assert exc_info.value.http_status == 200
+        assert exc_info.value.request_id == "http-success-1"
 
 
 class TestMistClientApiError:
@@ -457,6 +544,22 @@ class TestMistClientNoContent:
             pytest.raises(MistApiContractError),
         ):
             client.request_no_content("POST", "/v1/example/no-content", {})
+
+    def test_request_no_content_preserves_non_post_method(self, client):
+        resp = MagicMock()
+        resp.status_code = 204
+        resp.headers.get.side_effect = lambda key, default=None: (
+            "http-delete" if key == "x-request-id" else default
+        )
+        with patch("shared.mist_client.requests.request", return_value=resp) as request:
+            request_id = client.request_no_content("DELETE", "/v1/example/no-content")
+        request.assert_called_once_with(
+            "DELETE",
+            f"{client.base_url}/v1/example/no-content",
+            json=None,
+            timeout=client.timeout,
+        )
+        assert request_id == "http-delete"
 
 
 class TestMistClientConnection:
