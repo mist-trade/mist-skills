@@ -18,8 +18,8 @@ def merged_k_data():
         {
             "startTime": "2026-04-10",
             "endTime": "2026-04-11",
-            "highest": 3320,
-            "lowest": 3290,
+            "high": 3320,
+            "low": 3290,
             "trend": "UP",
             "mergedCount": 2,
         },
@@ -28,7 +28,7 @@ def merged_k_data():
 
 @pytest.fixture
 def bi_data():
-    return [{"k": [{"id": 1, "highest": 3320, "lowest": 3290}]}]
+    return [{"k": [{"id": 1, "high": 3320, "low": 3290}]}]
 
 
 @pytest.fixture
@@ -48,6 +48,10 @@ def test_merge_k(merged_k_data):
             code="000001.SH", period="daily", start_date="2026-01-01", end_date="2026-04-13"
         )
     assert result[0]["trend"] == "UP"
+    assert result[0]["high"] == 3320
+    assert result[0]["low"] == 3290
+    assert "highest" not in result[0]
+    assert "lowest" not in result[0]
 
 
 def test_merge_k_endpoint(merged_k_data):

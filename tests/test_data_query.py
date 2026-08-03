@@ -37,8 +37,8 @@ def kline_data():
             "time": "2026-04-13",
             "open": 3300,
             "close": 3310,
-            "highest": 3320,
-            "lowest": 3290,
+            "high": 3320,
+            "low": 3290,
             "amount": 100000,
         },
     ]
@@ -72,6 +72,10 @@ def test_get_kline_data(kline_data):
         )
     assert len(result) == 1
     assert result[0]["open"] == 3300
+    assert result[0]["high"] == 3320
+    assert result[0]["low"] == 3290
+    assert "highest" not in result[0]
+    assert "lowest" not in result[0]
 
 
 def test_get_kline_data_rejects_daily():

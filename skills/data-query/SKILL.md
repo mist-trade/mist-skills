@@ -75,7 +75,7 @@ Defaults and guardrails:
 
 ## Response Fields
 
-K-line data returns: `id`, `symbol`, `time`, `amount`, `open`, `close`, `highest`, `lowest`.
+K-line data returns: `id`, `symbol`, `time`, `amount`, `open`, `close`, `high`, `low`.
 
 ## Mist API Notes
 

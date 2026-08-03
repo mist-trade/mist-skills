@@ -27,7 +27,7 @@ Merge K-lines based on containment relationships.
 ```bash
 python scripts/merge_k.py --code 000001.SH --period daily --start-date "2026-01-01" --end-date "2026-04-13"
 ```
-Returns: Array of merged K-line groups with `{startTime, endTime, highest, lowest, trend, mergedCount}`.
+Returns: Array of merged K-line groups with `{startTime, endTime, high, low, trend, mergedCount}`.
 
 ### create_bi
 Identify strokes (笔) from K-line data.
