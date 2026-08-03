@@ -113,7 +113,7 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
 
     client = MagicMock(spec=MistClient)
     client.post_list.side_effect = [
-        MistApiError("Index information not found", 400),
+        MistApiError("Index information not found", "BAD_REQUEST", 400),
         kline_data,
     ]
     client.post_object.side_effect = [
@@ -122,7 +122,7 @@ def test_get_daily_kline_collects_when_security_is_missing(kline_data):
         {"code": "600519", "period": 1440, "count": 1},
     ]
     client.get_object.side_effect = [
-        MistApiError("Security with code 600519 not found", 404),
+        MistApiError("Security with code 600519 not found", "NOT_FOUND", 404),
     ]
 
     with patch.object(get_daily_kline, "MistClient", return_value=client):
@@ -181,7 +181,7 @@ def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
 
     client = MagicMock(spec=MistClient)
     client.post_list.side_effect = [
-        MistApiError("Index information not found", 400),
+        MistApiError("Index information not found", "BAD_REQUEST", 400),
         kline_data,
     ]
     client.post_object.side_effect = [
@@ -190,7 +190,7 @@ def test_get_kline_data_collects_intraday_when_security_is_missing(kline_data):
         {"code": "600519", "period": 60, "count": 1},
     ]
     client.get_object.side_effect = [
-        MistApiError("Security with code 600519 not found", 404),
+        MistApiError("Security with code 600519 not found", "NOT_FOUND", 404),
     ]
 
     with patch.object(get_kline_data, "MistClient", return_value=client):

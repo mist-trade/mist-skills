@@ -13,7 +13,7 @@ def test_run_kline_query_collects_intraday_with_period_specific_body():
     client = MagicMock(spec=MistClient)
     kline_data = [{"symbol": "600519.SH", "open": 1700}]
     client.post_list.side_effect = [
-        MistApiError("Index information not found", 400),
+        MistApiError("Index information not found", "BAD_REQUEST", 400),
         kline_data,
     ]
     client.post_object.side_effect = [
@@ -22,7 +22,7 @@ def test_run_kline_query_collects_intraday_with_period_specific_body():
         {"code": "600519", "period": 60, "count": 1},
     ]
     client.get_object.side_effect = [
-        MistApiError("Security with code 600519 not found", 404),
+        MistApiError("Security with code 600519 not found", "NOT_FOUND", 404),
     ]
 
     result = run_kline_query(
@@ -63,7 +63,7 @@ def test_run_kline_query_collects_daily_with_daily_body():
         {"code": "600519", "period": 1440, "count": 1},
     ]
     client.get_object.side_effect = [
-        MistApiError("Security with code 600519 not found", 404),
+        MistApiError("Security with code 600519 not found", "NOT_FOUND", 404),
     ]
 
     result = run_kline_query(
@@ -111,9 +111,32 @@ def test_run_kline_query_rejects_disallowed_period():
     client.get_object.assert_not_called()
 
 
-def test_run_kline_query_does_not_collect_based_on_error_message_text():
+def test_run_kline_query_does_not_collect_on_unapproved_error_code():
     client = MagicMock(spec=MistClient)
-    error = MistApiError("Security with code 600519 not found", 500)
+    error = MistApiError("Security with code 600519 not found", "INTERNAL_ERROR", 500)
+    client.post_list.side_effect = error
+
+    with pytest.raises(MistApiError) as exc_info:
+        run_kline_query(
+            client=client,
+            code="600519.SH",
+            period="daily",
+            start_date="2026-06-21",
+            end_date="2026-06-28",
+            source="tdx",
+            allowed_periods={1440},
+        )
+
+    assert exc_info.value is error
+    assert client.post_list.call_count == 1
+    client.post_object.assert_not_called()
+    client.get_object.assert_not_called()
+
+
+def test_run_kline_query_does_not_collect_when_same_status_has_unapproved_code():
+    """Same HTTP 400, but a non-collect code (e.g. VALIDATION_ERROR) must not collect."""
+    client = MagicMock(spec=MistClient)
+    error = MistApiError("Request validation failed", "VALIDATION_ERROR", 400)
     client.post_list.side_effect = error
 
     with pytest.raises(MistApiError) as exc_info:

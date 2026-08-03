@@ -69,5 +69,5 @@ def run_cli(action: Callable[[], Any]) -> None:
         print(f"Connection error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
     except MistApiError as exc:
-        print(f"Mist API error ({exc.error_code}): {exc}", file=sys.stderr)
+        print(f"Mist API error ({exc.code}): {exc}", file=sys.stderr)
         raise SystemExit(1) from exc

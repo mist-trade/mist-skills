@@ -38,5 +38,24 @@ FIELD_TYPE = "type"
 
 SECURITY_TYPE_STOCK = "STOCK"
 SECURITY_SOURCE_PRIORITY = 100
-KLINE_RETRY_STATUS_CODES = frozenset({400, 404})
+
+#: Stable backend error codes that may trigger an automatic K-line collection.
+#:
+#: These replace the former HTTP-status allowlist ``{400, 404}`` and are derived
+#: from the archived ``standardize-service-boundary-contracts`` backend contract
+#: rather than guessed from a generic HTTP status:
+#:
+#: * ``BAD_REQUEST`` - ``POST /v1/indicators/k`` reports a missing security via a
+#:   thrown ``HttpException(BAD_REQUEST)`` (``indicator.service.ts``); it is the
+#:   signal that the requested K-line window is not yet present and should be
+#:   collected.
+#: * ``NOT_FOUND`` - ``GET /v1/securities/:code``, ``POST /v1/security-sources``
+#:   and ``POST /v1/collector/collect`` report a missing security via a thrown
+#:   ``NotFoundException``.
+#:
+#: The set intentionally excludes ``VALIDATION_ERROR`` (also HTTP 400 under the
+#: old status allowlist) because a request-shape validation failure is a client
+#: bug, not a "needs collection" signal. This preserves the prior auto-collection
+#: business scope without widening it.
+KLINE_COLLECT_ERROR_CODES = frozenset({"BAD_REQUEST", "NOT_FOUND"})
 SOURCE_HELP_TEXT = "Data source (ef/tdx/mqmt)"

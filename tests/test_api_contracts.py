@@ -33,4 +33,4 @@ def test_api_contracts_define_payload_fields_and_retry_codes():
     assert contracts.FIELD_PRIORITY == "priority"
     assert contracts.SECURITY_TYPE_STOCK == "STOCK"
     assert contracts.SECURITY_SOURCE_PRIORITY == 100
-    assert frozenset({400, 404}) == contracts.KLINE_RETRY_STATUS_CODES
+    assert frozenset({"BAD_REQUEST", "NOT_FOUND"}) == contracts.KLINE_COLLECT_ERROR_CODES

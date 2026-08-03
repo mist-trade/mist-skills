@@ -13,7 +13,7 @@ from shared.api_contracts import (
     FIELD_SOURCE,
     FIELD_START_DATE,
     FIELD_TYPE,
-    KLINE_RETRY_STATUS_CODES,
+    KLINE_COLLECT_ERROR_CODES,
     SECURITY_SOURCE_PRIORITY,
     SECURITY_TYPE_STOCK,
 )
@@ -105,7 +105,7 @@ def query_kline(
 
 
 def should_collect_after_error(error: MistApiError) -> bool:
-    return error.error_code in KLINE_RETRY_STATUS_CODES
+    return error.code in KLINE_COLLECT_ERROR_CODES
 
 
 def ensure_security(

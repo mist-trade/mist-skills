@@ -61,7 +61,7 @@ def test_run_cli_catches_connection_error(capsys):
 
 def test_run_cli_catches_api_error(capsys):
     with pytest.raises(SystemExit) as exc_info:
-        run_cli(lambda: (_ for _ in ()).throw(MistApiError("bad request", 400)))
+        run_cli(lambda: (_ for _ in ()).throw(MistApiError("bad request", "BAD_REQUEST", 400)))
 
     assert exc_info.value.code == 1
-    assert "Mist API error (400): bad request" in capsys.readouterr().err
+    assert "Mist API error (BAD_REQUEST): bad request" in capsys.readouterr().err
