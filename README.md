@@ -11,15 +11,17 @@ provider raw API。
 | `chan-theory` | merge K、笔、分型、中枢分析 |
 | `technical-indicators` | MACD、KDJ、RSI |
 | `data-query` | 证券、指数与 K 线查询/补齐 |
-| `strategy-alerts` | 消费 backend strategy alert event 并回写投递结果 |
+| `strategy-alerts` | 消费 backend strategy alert event 并回写投递结果（仅 `SKILL.md`，实现位于 `shared/strategy_alerts.py`，无独立脚本） |
 
 ## 安装
 
+仓库由 `uv` 管理（见 `uv.lock`，CI 使用 `uv sync --frozen --extra dev`）：
+
 ```bash
-python3.10 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --frozen --extra dev
 ```
+
+运行脚本与工具时使用 `uv run ...`（与 `.github/workflows/ci.yml` 一致）。
 
 ## 配置
 
@@ -44,9 +46,9 @@ Backend period 使用数字 enum（`1`、`5`、`15`、`30`、`60`、`1440`）；
 ## 测试
 
 ```bash
-pytest
-PYTHONPATH=. python skills/data-query/scripts/list_indices.py
-PYTHONPATH=. python skills/data-query/scripts/get_daily_kline.py \
+uv run pytest
+uv run python skills/data-query/scripts/list_indices.py
+uv run python skills/data-query/scripts/get_daily_kline.py \
   --code 600519.SH --name 贵州茅台 \
   --start-date 2026-06-21 --end-date 2026-06-28
 ```
