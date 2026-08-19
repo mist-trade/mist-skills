@@ -19,7 +19,7 @@ Returns: Array of `{macd, signal, histogram, symbol, time, close}`.
 
 ### kdj
 KDJ Stochastic Oscillator — identifies overbought/oversold conditions.
-Default parameters: period=14, kSmoothing=3, dSmoothing=3.
+Default parameters: period=9, kSmoothing=3, dSmoothing=3.
 ```bash
 python scripts/kdj.py --code 000001.SH --period daily --start-date "2026-01-01" --end-date "2026-04-13"
 ```
