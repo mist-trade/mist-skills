@@ -1,72 +1,128 @@
-# Mist Skills
+# Mist Skills AI 与智能机器人技能套件
 
-Mist Skills 为 Codex/Agent/AstrBot 提供缠论、技术指标、行情查询和策略告警消费能力。
-所有脚本只调用 Mist backend `/v1/*`，不直连 TDX/QMT datasource，也不执行 native
-provider raw API。
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.12-blue.svg" alt="Python 3.12" />
+  <img src="https://img.shields.io/badge/AstrBot-Integration-ff69b4.svg" alt="AstrBot" />
+  <img src="https://img.shields.io/badge/uv-Package_Manager-purple.svg" alt="uv" />
+  <img src="https://img.shields.io/badge/License-BSD--3--Clause-green.svg" alt="License" />
+</p>
 
-## Skills
+Mist Skills 为大语言模型 Agent（如 OpenAI Codex、Claude 等）与智能聊天机器人（AstrBot、QQ/微信机器人）提供 A 股市场行情查询、缠论分析、技术指标计算与策略告警消费的标准化技能插件集。
 
-| Skill | 用途 |
-|---|---|
-| `chan-theory` | merge K、笔、分型、中枢分析 |
-| `technical-indicators` | MACD、KDJ、RSI |
-| `data-query` | 证券、指数与 K 线查询/补齐 |
-| `strategy-alerts` | 消费 backend strategy alert event 并回写投递结果（仅 `SKILL.md`，实现位于 `shared/strategy_alerts.py`，无独立脚本） |
+---
 
-## 安装
+## 🌟 核心特性
 
-仓库由 `uv` 管理（见 `uv.lock`，CI 使用 `uv sync --frozen --extra dev`）：
+- **四大约定 AI Skills**：
+  - `chan-theory`：K 线合并、顶底分型、宽笔、线段与中枢解盘。
+  - `technical-indicators`：MACD、KDJ、RSI 等指标状态诊断与多周期分析。
+  - `data-query`：标的行情查询、指数列表与历史/当日 K 线自动对齐补齐。
+  - `strategy-alerts`：自动化消费未投递告警并回写状态。
+- **纯标准客户端访问**：所有脚本严格调用 Mist Backend REST API（`/v1/*`），不直连 TDX/QMT 硬件数据源，保持清晰的架构分层。
+- **周期别名自动转换**：智能支持人类自然语言别名（`5min`、`daily`、`1d`、`30m` 等）向后端标准数字枚举的自动映射。
+- **AstrBot 插件原生兼容**：支持直接挂载至 AstrBot 插件目录，赋能聊天群内智能量化投研助手。
+
+---
+
+## 🏛️ 数据链路与交互
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│               LLM Agent / 聊天机器人 (AstrBot)              │
+│       "分析一下 600519 茅台的日线缠论中枢和 MACD 状态"       │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                ┌──────────────▼──────────────┐
+                │      Mist Skills 工具层     │
+                │ (Python 3.12 / Shared Lib)  │
+                └──────────────┬──────────────┘
+                               │ REST HTTP 请求
+                ┌──────────────▼──────────────┐
+                │    Mist Backend (:8001)     │
+                │  (或 Nginx 网关 /api/mist)  │
+                └─────────────────────────────┘
+```
+
+---
+
+## 📋 环境与依赖要求
+
+- **Python**：`>= 3.12`
+- **包管理器**：`uv` (`uv sync --frozen --extra dev`)
+
+---
+
+## 🚀 快速上手 (本地运行)
+
+### 1. 同步环境
 
 ```bash
 uv sync --frozen --extra dev
 ```
 
-运行脚本与工具时使用 `uv run ...`（与 `.github/workflows/ci.yml` 一致）。
-
-## 配置
-
-| 变量 | 默认值 | 说明 |
-|---|---|---|
-| `MIST_API_BASE_URL` | `http://127.0.0.1:8001` | Mist backend base URL |
-| `MIST_API_TIMEOUT` | `30` | 请求超时秒数 |
-| `MIST_DEFAULT_SOURCE` | `tdx` | 需要补数据时的默认 source |
-
-生产环境优先通过同源 gateway：
+### 2. 环境变量配置
 
 ```bash
-export MIST_API_BASE_URL=http://www.moyui.mist/api/mist
+# 指向 Mist 后端 API 地址 (本地或生产网关)
+export MIST_API_BASE_URL=http://127.0.0.1:8001
+export MIST_API_TIMEOUT=30
+export MIST_DEFAULT_SOURCE=tdx
 ```
 
-如果调用环境不能解析该主机名，可临时使用
-`http://<windows-lan-ip>/api/mist`。只有同机诊断才直接使用 `:8001`。
-
-Backend period 使用数字 enum（`1`、`5`、`15`、`30`、`60`、`1440`）；Skills
-保留 `5min`、`daily` 等用户别名，并在请求前转换。
-
-## 测试
+### 3. 执行单项技能脚本
 
 ```bash
-uv run pytest
+# 查询大盘指数列表
 uv run python skills/data-query/scripts/list_indices.py
+
+# 查询指定个股历史日线
 uv run python skills/data-query/scripts/get_daily_kline.py \
   --code 600519.SH --name 贵州茅台 \
-  --start-date 2026-06-21 --end-date 2026-06-28
+  --start-date 2026-08-01 --end-date 2026-08-25
+
+# 运行个股缠论形态分析
+uv run python skills/chan-theory/scripts/analyze_chan.py \
+  --code 600519.SH --period daily \
+  --start-date 2026-08-01 --end-date 2026-08-25
 ```
 
-新证券先运行 data-query 补齐 K 线，再执行指标或缠论。空数组表示当前窗口无结果，
-不等同于脚本异常。
+---
 
-## AstrBot
-
-把 `skills/` 安装到 `/AstrBot/data/skills/`，把 `shared/` 放到
-`/AstrBot/data/shared/`，并设置：
+## 🧪 测试与质量门禁
 
 ```bash
+# 运行全部技能单元测试
+uv run pytest
+
+# 静态代码检查
+uv run ruff check .
+```
+
+---
+
+## 🤖 AstrBot 机器人部署
+
+将 `skills/` 与 `shared/` 挂载到 AstrBot 容器数据路径中：
+
+```bash
+# 容器内环境变量配置
 PYTHONPATH=/AstrBot/data
-MIST_API_BASE_URL=http://www.moyui.mist/api/mist
+MIST_API_BASE_URL=http://www.mist.local/api/mist
 MIST_API_TIMEOUT=30
 MIST_DEFAULT_SOURCE=tdx
 ```
 
-策略告警只使用 `/v1/strategy-alert-events`。Skills 不计算策略规则、不轮询
-datasource、不直接保存行情。容器实测步骤见 [RUNBOOK.md](RUNBOOK.md)。
+详细挂载与实机测试指南请参阅 [RUNBOOK.md](./RUNBOOK.md)。
+
+---
+
+## 📂 技能模块索引
+
+- [技能目录与说明 (skills)](./skills/README.md)
+- [公共客户端库 (shared)](./shared/)
+
+---
+
+## 📄 许可证
+
+本项目遵循 [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) 开源许可证。
