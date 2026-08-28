@@ -115,7 +115,7 @@ uv run ruff check .
 ```bash
 # 容器内环境变量配置
 PYTHONPATH=/AstrBot/data
-MIST_API_BASE_URL=http://www.mist.local/api/mist
+MIST_API_BASE_URL=http://<gateway>/api/mist
 MIST_API_TIMEOUT=30
 MIST_DEFAULT_SOURCE=tdx
 ```
