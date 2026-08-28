@@ -1,8 +1,8 @@
 <p align="right">
-  <a href="./README.zh-CN.md">中文</a> | <strong>English</strong>
+  <strong>中文</strong> | <a href="./README.md">English</a>
 </p>
 
-# Mist Skills — AI & Agent Skills Suite
+# Mist Skills AI 与智能机器人技能套件
 
 <p align="left">
   <img src="https://img.shields.io/badge/Python-3.12-blue.svg" alt="Python 3.12" />
@@ -11,11 +11,10 @@
   <img src="https://img.shields.io/badge/License-BSD--3--Clause-green.svg" alt="License" />
 </p>
 
-Agent skills for Mist: market-data queries, Chan Theory analysis, technical indicators, and strategy alert consumption for LLM agents (e.g. Codex, Claude) and chat bots (AstrBot / QQ / WeChat).
-
-> 中文版见 [README.zh-CN.md](./README.zh-CN.md)。
-
 Mist Skills 为大语言模型 Agent（如 OpenAI Codex、Claude 等）与智能聊天机器人（AstrBot、QQ/微信机器人）提供 A 股市场行情查询、缠论分析、技术指标计算与策略告警消费的标准化技能插件集。
+
+
+
 
 ---
 
