@@ -13,82 +13,81 @@
 
 Agent skills for Mist: market-data queries, Chan Theory analysis, technical indicators, and strategy alert consumption for LLM agents (e.g. Codex, Claude) and chat bots (AstrBot / QQ / WeChat).
 
-> 中文版见 [README.zh-CN.md](./README.zh-CN.md)。
-
-Mist Skills 为大语言模型 Agent（如 OpenAI Codex、Claude 等）与智能聊天机器人（AstrBot、QQ/微信机器人）提供 A 股市场行情查询、缠论分析、技术指标计算与策略告警消费的标准化技能插件集。
+> See [README.zh-CN.md](./README.zh-CN.md) for Chinese.
 
 ---
 
-## 🌟 核心特性
+## 🌟 Core Features
 
-- **四大约定 AI Skills**：
-  - `chan-theory`：K 线合并、顶底分型、宽笔、线段与中枢解盘。
-  - `technical-indicators`：MACD、KDJ、RSI 等指标状态诊断与多周期分析。
-  - `data-query`：标的行情查询、指数列表与历史/当日 K 线自动对齐补齐。
-  - `strategy-alerts`：自动化消费未投递告警并回写状态。
-- **纯标准客户端访问**：所有脚本严格调用 Mist Backend REST API（`/v1/*`），不直连 TDX/QMT 硬件数据源，保持清晰的架构分层。
-- **周期别名自动转换**：智能支持人类自然语言别名（`5min`、`daily`、`1d`、`30m` 等）向后端标准数字枚举的自动映射。
-- **AstrBot 插件原生兼容**：支持直接挂载至 AstrBot 插件目录，赋能聊天群内智能量化投研助手。
+- **Four canonical AI Skills**:
+  - `chan-theory`: merged K, fractal, wide Bi, Duan & Zhongshu interpretation.
+  - `technical-indicators`: MACD / KDJ / RSI status & multi-period analysis.
+  - `data-query`: symbol quotes, index listing, and historical/intraday K-line aligned fill.
+  - `strategy-alerts`: consume undelivered alerts and write back status.
+- **Pure standard client access**: all scripts call Mist Backend REST APIs (`/v1/*`) only, never the TDX/QMT hardware datasources — clean layer separation.
+- **Period alias auto-mapping**: human-friendly aliases (`5min`, `daily`, `1d`, `30m`, …) are automatically mapped to backend numeric enums.
+- **AstrBot-native**: mount directly into the AstrBot plugin directory to power an in-group quant research assistant.
 
 ---
 
-## 🏛️ 数据链路与交互
+## 🏛️ Data Chain & Interaction
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│               LLM Agent / 聊天机器人 (AstrBot)              │
-│       "分析一下 600519 茅台的日线缠论中枢和 MACD 状态"       │
+│               LLM Agent / Chatbot (AstrBot)                 │
+│       "Analyze 600519 Moutai daily Chan Zhongshu & MACD"    │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                 ┌──────────────▼──────────────┐
-                │      Mist Skills 工具层     │
+                │      Mist Skills Tool Layer │
                 │ (Python 3.12 / Shared Lib)  │
                 └──────────────┬──────────────┘
-                               │ REST HTTP 请求
+                               │ REST HTTP requests
                 ┌──────────────▼──────────────┐
                 │    Mist Backend (:8001)     │
-                │  (或 Nginx 网关 /api/mist)  │
+                │  (or Nginx Gateway          │
+                │   /api/mist)                │
                 └─────────────────────────────┘
 ```
 
 ---
 
-## 📋 环境与依赖要求
+## 📋 Requirements
 
-- **Python**：`>= 3.12`
-- **包管理器**：`uv` (`uv sync --frozen --extra dev`)
+- **Python**: `>= 3.12`
+- **Package manager**: `uv` (`uv sync --frozen --extra dev`)
 
 ---
 
-## 🚀 快速上手 (本地运行)
+## 🚀 Quick Start (Local Run)
 
-### 1. 同步环境
+### 1. Sync environment
 
 ```bash
 uv sync --frozen --extra dev
 ```
 
-### 2. 环境变量配置
+### 2. Configure environment variables
 
 ```bash
-# 指向 Mist 后端 API 地址 (本地或生产网关)
+# Point to Mist backend API (local or production gateway)
 export MIST_API_BASE_URL=http://127.0.0.1:8001
 export MIST_API_TIMEOUT=30
 export MIST_DEFAULT_SOURCE=tdx
 ```
 
-### 3. 执行单项技能脚本
+### 3. Run a skill script
 
 ```bash
-# 查询大盘指数列表
+# List market indices
 uv run python skills/data-query/scripts/list_indices.py
 
-# 查询指定个股历史日线
+# Query historical daily K-lines for a symbol
 uv run python skills/data-query/scripts/get_daily_kline.py \
-  --code 600519.SH --name 贵州茅台 \
+  --code 600519.SH --name "Kweichow Moutai" \
   --start-date 2026-08-01 --end-date 2026-08-25
 
-# 运行个股缠论形态分析
+# Run Chan Theory structure analysis
 uv run python skills/chan-theory/scripts/analyze_chan.py \
   --code 600519.SH --period daily \
   --start-date 2026-08-01 --end-date 2026-08-25
@@ -96,41 +95,41 @@ uv run python skills/chan-theory/scripts/analyze_chan.py \
 
 ---
 
-## 🧪 测试与质量门禁
+## 🧪 Testing & Quality Gates
 
 ```bash
-# 运行全部技能单元测试
+# Run all skill unit tests
 uv run pytest
 
-# 静态代码检查
+# Static checks
 uv run ruff check .
 ```
 
 ---
 
-## 🤖 AstrBot 机器人部署
+## 🤖 AstrBot Deployment
 
-将 `skills/` 与 `shared/` 挂载到 AstrBot 容器数据路径中：
+Mount `skills/` & `shared/` into the AstrBot container data path:
 
 ```bash
-# 容器内环境变量配置
+# In-container env
 PYTHONPATH=/AstrBot/data
 MIST_API_BASE_URL=http://<gateway>/api/mist
 MIST_API_TIMEOUT=30
 MIST_DEFAULT_SOURCE=tdx
 ```
 
-详细挂载与实机测试指南请参阅 [RUNBOOK.md](./RUNBOOK.md)。
+See [RUNBOOK.md](./RUNBOOK.md) for mount & on-device testing details.
 
 ---
 
-## 📂 技能模块索引
+## 📂 Skill Module Index
 
-- [技能目录与说明 (skills)](./skills/README.md)
-- [公共客户端库 (shared)](./shared/)
+- [Skills catalog (skills)](./skills/README.md)
+- [Shared client lib (shared)](./shared/)
 
 ---
 
-## 📄 许可证
+## 📄 License
 
-本项目遵循 [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause) 开源许可证。
+Licensed under [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause).
