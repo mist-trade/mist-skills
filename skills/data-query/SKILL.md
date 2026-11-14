@@ -36,7 +36,7 @@ Parameters:
 - `--period` (required): One of `1min`, `5min`, `15min`, `30min`, `60min` (converted to Mist numeric period values before request)
 - `--start-date` (required): Start date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
 - `--end-date` (required): End date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
-- `--source` (optional): Data source — `ef` (East Money), `tdx` (TongDaXin), `mqmt` (MaQiMaTe). Defaults to `MIST_DEFAULT_SOURCE` or `tdx`
+- `--source` (optional): Data source — `ef` (East Money), `tdx` (TongDaXin), `qmt` (QMT). Defaults to `MIST_DEFAULT_SOURCE` or `tdx`
 - `--name` (optional): Security display name used when the security must be initialized
 - `--no-auto-collect` (optional): Only query stored data; do not initialize or collect
 

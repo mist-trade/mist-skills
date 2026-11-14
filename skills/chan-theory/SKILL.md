@@ -57,7 +57,7 @@ All chan-theory scripts accept:
 - `--period` (required): Time period — `1min`, `5min`, `15min`, `30min`, `60min`, `daily` (converted to Mist numeric period values before request)
 - `--start-date` (required): Start date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
 - `--end-date` (required): End date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
-- `--source` (optional): Data source — `ef`, `tdx`, `mqmt`
+- `--source` (optional): Data source — `ef`, `tdx`, `qmt`
 
 ## Step-by-Step vs Combined
 

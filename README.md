@@ -11,42 +11,43 @@
   <img src="https://img.shields.io/badge/License-BSD--3--Clause-green.svg" alt="License" />
 </p>
 
-Agent skills for Mist: market-data queries, Chan Theory analysis, technical indicators, and strategy alert consumption for LLM agents (e.g. Codex, Claude) and chat bots (AstrBot / QQ / WeChat).
-
-> See [README.zh-CN.md](./README.zh-CN.md) for Chinese.
+Agent skills suite for Mist: market-data queries, Chan Theory structural analysis, Rust SIMD technical indicators, and strategy alert consumption for LLM agents (Codex, Claude) and chat assistants (AstrBot / QQ / WeChat).
 
 ---
 
 ## 🌟 Core Features
 
-- **Four canonical AI Skills**:
-  - `chan-theory`: merged K, fractal, wide Bi, Duan & Zhongshu interpretation.
-  - `technical-indicators`: MACD / KDJ / RSI status & multi-period analysis.
-  - `data-query`: symbol quotes, index listing, and historical/intraday K-line aligned fill.
-  - `strategy-alerts`: consume undelivered alerts and write back status.
-- **Pure standard client access**: all scripts call Mist Backend REST APIs (`/v1/*`) only, never the TDX/QMT hardware datasources — clean layer separation.
-- **Period alias auto-mapping**: human-friendly aliases (`5min`, `daily`, `1d`, `30m`, …) are automatically mapped to backend numeric enums.
-- **AstrBot-native**: mount directly into the AstrBot plugin directory to power an in-group quant research assistant.
+- **Four Canonical AI Skills**:
+  - `chan-theory`: Merged K containment, fractals (fenxing), wide Bi, feature sequence Duan, and Zhongshu structure analysis.
+  - `technical-indicators`: Status diagnosis and multi-period analysis based on Rust Polars SIMD indicator calculations (MACD, KDJ, RSI).
+  - `data-query`: Symbol quotes, index listing, and historical/intraday K-line auto-alignment & fill.
+  - `strategy-alerts`: Automated consumption of pending `StrategyAlertEvent` records and delivery status reporting.
+- **Pure Standard Client Access**: All scripts call Mist Backend REST APIs (`/v1/*`, port 8001) exclusively; never direct to TDX/QMT hardware datasources — maintaining clear architectural boundaries.
+- **Period Alias Auto-Mapping**: Human-friendly aliases (`5min`, `daily`, `1d`, `30m`, …) are automatically mapped to backend numeric enums.
+- **Synergy with Mist Notification Pipeline**:
+  - Enterprise Webhooks (WeCom, Feishu, etc.) with strict rate limiting are handled by `apps/notification` within the core backend;
+  - AstrBot functions as an external interactive chat assistant, querying pending alerts via `GET /v1/strategy-alert-events?status=pending` and writing back outcomes via `POST /v1/strategy-alert-events/:id/delivered` or `failed`.
+- **AstrBot-Native**: Mount directly into the AstrBot plugin directory to power an in-group quantitative research assistant.
 
 ---
 
-## 🏛️ Data Chain & Interaction
+## 🏛️ Data Flow & Interaction
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │               LLM Agent / Chatbot (AstrBot)                 │
-│       "Analyze 600519 Moutai daily Chan Zhongshu & MACD"    │
+│      "Analyze 600519 Moutai daily Chan Zhongshu & MACD"     │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                 ┌──────────────▼──────────────┐
                 │      Mist Skills Tool Layer │
                 │ (Python 3.12 / Shared Lib)  │
                 └──────────────┬──────────────┘
-                               │ REST HTTP requests
+                               │ REST HTTP Requests
                 ┌──────────────▼──────────────┐
-                │    Mist Backend (:8001)     │
-                │  (or Nginx Gateway          │
-                │   /api/mist)                │
+                │     Mist Backend (:8001)    │
+                │ /v1/indicators/*  /v1/chan/*│
+                │ /v1/securities    /v1/alert │
                 └─────────────────────────────┘
 ```
 
@@ -70,7 +71,7 @@ uv sync --frozen --extra dev
 ### 2. Configure environment variables
 
 ```bash
-# Point to Mist backend API (local or production gateway)
+# Point to Mist backend API (local or production)
 export MIST_API_BASE_URL=http://127.0.0.1:8001
 export MIST_API_TIMEOUT=30
 export MIST_DEFAULT_SOURCE=tdx
@@ -82,12 +83,12 @@ export MIST_DEFAULT_SOURCE=tdx
 # List market indices
 uv run python skills/data-query/scripts/list_indices.py
 
-# Query historical daily K-lines for a symbol
+# Query historical daily K-lines for a symbol (source tdx or qmt)
 uv run python skills/data-query/scripts/get_daily_kline.py \
   --code 600519.SH --name "Kweichow Moutai" \
-  --start-date 2026-08-01 --end-date 2026-08-25
+  --start-date 2026-08-01 --end-date 2026-08-25 --source tdx
 
-# Run Chan Theory structure analysis
+# Run Chan Theory structural analysis
 uv run python skills/chan-theory/scripts/analyze_chan.py \
   --code 600519.SH --period daily \
   --start-date 2026-08-01 --end-date 2026-08-25
@@ -114,12 +115,12 @@ Mount `skills/` & `shared/` into the AstrBot container data path:
 ```bash
 # In-container env
 PYTHONPATH=/AstrBot/data
-MIST_API_BASE_URL=http://<gateway>/api/mist
+MIST_API_BASE_URL=http://<backend-host>:8001
 MIST_API_TIMEOUT=30
 MIST_DEFAULT_SOURCE=tdx
 ```
 
-See [RUNBOOK.md](./RUNBOOK.md) for mount & on-device testing details.
+See [RUNBOOK.md](./RUNBOOK.md) for mounting and on-device verification details.
 
 ---
 

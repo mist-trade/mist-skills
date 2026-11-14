@@ -11,22 +11,22 @@
   <img src="https://img.shields.io/badge/License-BSD--3--Clause-green.svg" alt="License" />
 </p>
 
-Mist Skills 为大语言模型 Agent（如 OpenAI Codex、Claude 等）与智能聊天机器人（AstrBot、QQ/微信机器人）提供 A 股市场行情查询、缠论分析、技术指标计算与策略告警消费的标准化技能插件集。
-
-
-
+Mist Skills 为大语言模型 Agent（如 OpenAI Codex、Claude 等）与智能聊天机器人（AstrBot、QQ/微信机器人）提供 A 股市场行情查询、缠论形态分析、Rust SIMD 技术指标计算与策略告警消费的标准化技能插件集。
 
 ---
 
 ## 🌟 核心特性
 
 - **四大约定 AI Skills**：
-  - `chan-theory`：K 线合并、顶底分型、宽笔、线段与中枢解盘。
-  - `technical-indicators`：MACD、KDJ、RSI 等指标状态诊断与多周期分析。
-  - `data-query`：标的行情查询、指数列表与历史/当日 K 线自动对齐补齐。
-  - `strategy-alerts`：自动化消费未投递告警并回写状态。
-- **纯标准客户端访问**：所有脚本严格调用 Mist Backend REST API（`/v1/*`），不直连 TDX/QMT 硬件数据源，保持清晰的架构分层。
+  - `chan-theory`：K 线包含合并、顶底分型、宽笔、特征序列线段与中枢解盘分析；
+  - `technical-indicators`：基于 Rust Polars SIMD 工业底座的 MACD、KDJ、RSI 等指标状态诊断与多周期分析；
+  - `data-query`：标的行情查询、指数列表与历史/当日 K 线自动对齐补齐；
+  - `strategy-alerts`：自动化消费未决的 `StrategyAlertEvent` 并自动回写投递状态。
+- **纯标准客户端访问**：所有脚本严格调用 Mist Backend REST API（`/v1/*`，端口 8001），不直连底层 TDX/QMT 硬件数据源，保持清晰的微服务架构分层。
 - **周期别名自动转换**：智能支持人类自然语言别名（`5min`、`daily`、`1d`、`30m` 等）向后端标准数字枚举的自动映射。
+- **协同与通知链路定位**：
+  - Mist 生产体系中，企业微信、飞书等实盘 Webhook 由 `apps/notification` 统一调度与频控；
+  - AstrBot 作为群聊/个人外围交互终端，通过 `GET /v1/strategy-alert-events?status=pending` 拉取属于机器人的未决事件，向群/用户投递后，通过 `POST /v1/strategy-alert-events/:id/delivered`（或 `failed`）将投递状态回写 Mist 后端。
 - **AstrBot 插件原生兼容**：支持直接挂载至 AstrBot 插件目录，赋能聊天群内智能量化投研助手。
 
 ---
@@ -45,8 +45,9 @@ Mist Skills 为大语言模型 Agent（如 OpenAI Codex、Claude 等）与智能
                 └──────────────┬──────────────┘
                                │ REST HTTP 请求
                 ┌──────────────▼──────────────┐
-                │    Mist Backend (:8001)     │
-                │  (或 Nginx 网关 /api/mist)  │
+                │     Mist Backend (:8001)    │
+                │ /v1/indicators/*  /v1/chan/*│
+                │ /v1/securities    /v1/alert │
                 └─────────────────────────────┘
 ```
 
@@ -70,7 +71,7 @@ uv sync --frozen --extra dev
 ### 2. 环境变量配置
 
 ```bash
-# 指向 Mist 后端 API 地址 (本地或生产网关)
+# 指向 Mist 后端 API 地址 (本地或生产环境)
 export MIST_API_BASE_URL=http://127.0.0.1:8001
 export MIST_API_TIMEOUT=30
 export MIST_DEFAULT_SOURCE=tdx
@@ -82,10 +83,10 @@ export MIST_DEFAULT_SOURCE=tdx
 # 查询大盘指数列表
 uv run python skills/data-query/scripts/list_indices.py
 
-# 查询指定个股历史日线
+# 查询指定个股历史日线 (支持 tdx / qmt)
 uv run python skills/data-query/scripts/get_daily_kline.py \
   --code 600519.SH --name 贵州茅台 \
-  --start-date 2026-08-01 --end-date 2026-08-25
+  --start-date 2026-08-01 --end-date 2026-08-25 --source tdx
 
 # 运行个股缠论形态分析
 uv run python skills/chan-theory/scripts/analyze_chan.py \
@@ -114,7 +115,7 @@ uv run ruff check .
 ```bash
 # 容器内环境变量配置
 PYTHONPATH=/AstrBot/data
-MIST_API_BASE_URL=http://<gateway>/api/mist
+MIST_API_BASE_URL=http://<backend-host>:8001
 MIST_API_TIMEOUT=30
 MIST_DEFAULT_SOURCE=tdx
 ```

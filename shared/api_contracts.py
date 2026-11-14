@@ -58,4 +58,4 @@ SECURITY_SOURCE_PRIORITY = 100
 #: bug, not a "needs collection" signal. This preserves the prior auto-collection
 #: business scope without widening it.
 KLINE_COLLECT_ERROR_CODES = frozenset({"BAD_REQUEST", "NOT_FOUND"})
-SOURCE_HELP_TEXT = "Data source (ef/tdx/mqmt)"
+SOURCE_HELP_TEXT = "Data source (ef/tdx/qmt)"
